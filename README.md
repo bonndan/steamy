@@ -1,9 +1,9 @@
 # Steamy Mod for Minecraft NeoForge
 
-This was a NeoForge port of [LittleLogistics](https://littlelogistics.murad.dev/) but now it only features locomotives.
-This mod is sponsored by [Agile Unicorn](https://agile-unicorn.com/).
+This mod features locomotives, aka rideable furnace minecarts and cheaper regular rails.
 
-[<img src="./sponsor.png">](https://agile-unicorn.com/)
+![logo](./project_logo.png)
+
 
 ## How To...
 
@@ -27,3 +27,6 @@ regular minecart.
 LGPLv3
 https://www.gnu.org/licenses/lgpl-3.0.en.html
 
+This mod is sponsored by [Agile Unicorn](https://agile-unicorn.com/).
+
+[<img src="./sponsor.png">](https://agile-unicorn.com/)
