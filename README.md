@@ -17,7 +17,7 @@ Runs on furnace minecart fuel.
 
 ### Control it?
 
-Press jump (space) to increase throttle and left ctrl to decrease throttle. Otherwise, the blimp is controlled like a
+Press jump (space) to increase throttle and left ctrl to decrease throttle. Otherwise, the locomotive is controlled like a
 regular minecart.
 
 ## License
