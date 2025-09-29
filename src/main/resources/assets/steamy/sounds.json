@@ -1,0 +1,10 @@
+{
+    "hiss": {
+        "sounds": [
+            {
+                "name": "steamy:hiss",
+                "preload": true
+            }
+        ]
+    }
+}

@@ -1,0 +1,26 @@
+package com.github.bonndan.steamy.setup
+
+import com.github.bonndan.steamy.SteamyMod
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.sounds.SoundEvent
+import net.neoforged.bus.api.IEventBus
+import net.neoforged.neoforge.registries.DeferredRegister
+import net.neoforged.neoforge.registries.DeferredRegister.create
+import java.util.function.Supplier
+
+object ModSounds {
+
+    private val SOUND_EVENTS: DeferredRegister<SoundEvent> = create(BuiltInRegistries.SOUND_EVENT, SteamyMod.MOD_ID)
+
+    val HISS: Supplier<SoundEvent> = SOUND_EVENTS.register(
+        "hiss",
+        Supplier {
+            SoundEvent.createFixedRangeEvent(ResourceLocation.fromNamespaceAndPath(SteamyMod.MOD_ID, "hiss"), 64F)
+        })
+
+    fun register(eventBus: IEventBus) {
+        SOUND_EVENTS.register(eventBus)
+    }
+
+}
