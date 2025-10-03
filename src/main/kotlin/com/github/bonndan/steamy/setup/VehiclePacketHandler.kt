@@ -18,7 +18,6 @@ object VehiclePacketHandler {
     fun register(event: RegisterPayloadHandlersEvent) {
         val registrar = event.registrar("1")
 
-
         registrar.playBidirectional(
             SetThrottlePacket.TYPE,
             SetThrottlePacket.STREAM_CODEC,

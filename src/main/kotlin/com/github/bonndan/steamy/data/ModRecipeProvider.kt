@@ -6,6 +6,7 @@ import net.minecraft.data.PackOutput
 import net.minecraft.data.recipes.RecipeCategory
 import net.minecraft.data.recipes.RecipeOutput
 import net.minecraft.data.recipes.RecipeProvider
+import net.minecraft.data.recipes.ShapedRecipeBuilder
 import net.minecraft.tags.ItemTags
 import net.minecraft.world.item.Items
 import java.util.concurrent.CompletableFuture
@@ -25,6 +26,23 @@ class ModRecipeProvider(recipeOutput: RecipeOutput, pRegistries: HolderLookup.Pr
             .unlockedBy("has_item", has(Items.FURNACE))
             .save(output, "steamy:rails")
 
+        this.shaped(RecipeCategory.TRANSPORTATION, ModItems.SPRING.get(), 6)
+            .define('_', Items.STRING)
+            .define('^', Items.IRON_NUGGET)
+            .pattern("_^_")
+            .pattern("^_^")
+            .unlockedBy("has_item", has(Items.STRING))
+            .save(output)
+
+        this.shaped(RecipeCategory.TOOLS, ModItems.CONDUCTORS_WRENCH.get(), 1)
+            .define('-', Items.IRON_INGOT)
+            .define('^', ModItems.SPRING.get())
+            .define('r', Items.RED_DYE)
+            .pattern("  ^")
+            .pattern(" -r")
+            .pattern("-  ")
+            .unlockedBy("has_item", has(ModItems.SPRING.get()))
+            .save(output)
 
         this.shapeless(RecipeCategory.TRANSPORTATION, ModItems.LOCOMOTIVE.get(), 1)
             .requires ( Items.FURNACE_MINECART)

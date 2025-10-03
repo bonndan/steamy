@@ -19,7 +19,7 @@ class SetThrottlePacket(val locoId: Int, val throttle: Float) : CustomPacketPayl
 
         val TYPE = CustomPacketPayload.Type<SetThrottlePacket>(LOCATION)
 
-        val STREAM_CODEC: StreamCodec<ByteBuf?, SetThrottlePacket> =
+        val STREAM_CODEC: StreamCodec<ByteBuf, SetThrottlePacket> =
             StreamCodec.composite<ByteBuf, SetThrottlePacket, Int, Float>(
                 ByteBufCodecs.VAR_INT, SetThrottlePacket::locoId,
                 ByteBufCodecs.FLOAT, SetThrottlePacket::throttle

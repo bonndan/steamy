@@ -13,13 +13,12 @@ import net.neoforged.neoforge.registries.DeferredRegister
 
 object Registration {
 
-    val BLOCKS: DeferredRegister<Block> = DeferredRegister.createBlocks(SteamyMod.MOD_ID);
+    private val BLOCKS: DeferredRegister.Blocks = DeferredRegister.createBlocks(SteamyMod.MOD_ID);
+    private val ITEMS: DeferredRegister.Items = DeferredRegister.createItems(SteamyMod.MOD_ID);
     val MENUS: DeferredRegister<MenuType<*>> = createRegister(BuiltInRegistries.MENU)
     val ENTITIES: DeferredRegister<EntityType<*>> = createRegister(BuiltInRegistries.ENTITY_TYPE)
-    val ITEMS: DeferredRegister.Items = DeferredRegister.createItems(SteamyMod.MOD_ID);
     val RECIPE_SERIALIZERS: DeferredRegister<RecipeSerializer<*>> = createRegister(BuiltInRegistries.RECIPE_SERIALIZER)
     val TILE_ENTITIES: DeferredRegister<BlockEntityType<*>> = createRegister(BuiltInRegistries.BLOCK_ENTITY_TYPE)
-
 
 
     private fun <T> createRegister(registry: Registry<T>): DeferredRegister<T> {
@@ -35,9 +34,10 @@ object Registration {
         ENTITIES.register(eventBus)
 
         //TODO static calls used to ensure correct loading sequence
-        ModBlocks.register() //register blocks before items
-        ModItems.register()
+        ModBlocks.register(BLOCKS)
+        ModItems.register(ITEMS)
         ModEntityTypes.register()
+        eventBus.register(VehiclePacketHandler)
         ModSounds.register(eventBus)
     }
 }
