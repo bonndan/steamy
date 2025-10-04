@@ -16,18 +16,17 @@ import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.level.redstone.Orientation
 
-class TeeJunctionRail(pProperties: Properties, private val automaticSwitching: Boolean) :
+class TeeJunctionRail(pProperties: Properties) :
     AbstractMultiShapeRail(pProperties) {
 
     override fun getStateForPlacement(pContext: BlockPlaceContext): BlockState {
         val fluidstate: FluidState = pContext.level.getFluidState(pContext.clickedPos)
         val flag = fluidstate.type === Fluids.WATER
         val blockstate: BlockState = super.defaultBlockState()
+
         return setFacing(blockstate, pContext.horizontalDirection)
             .setValue(WATERLOGGED, flag)
-            .setValue(POWERED,
-                !automaticSwitching && pContext.level.hasNeighborSignal(pContext.clickedPos)
-            )
+            .setValue(POWERED, pContext.level.hasNeighborSignal(pContext.clickedPos))
     }
 
     private fun getRailShapeFromFacing(facing: Direction): RailShape {
@@ -36,7 +35,7 @@ class TeeJunctionRail(pProperties: Properties, private val automaticSwitching: B
 
     fun setFacing(state: BlockState, facing: Direction): BlockState {
         return state
-            .setValue(RAIL_SHAPE, getRailShapeFromFacing(facing))
+            .setValue(BlockStateProperties.RAIL_SHAPE, getRailShapeFromFacing(facing))
             .setValue(FACING, facing)
     }
 
@@ -72,42 +71,12 @@ class TeeJunctionRail(pProperties: Properties, private val automaticSwitching: B
         `in`: Direction,
         out: Direction
     ): Boolean {
-        val c = getRailConfiguration(state)
-        val possibilities= getPossibleOutputDirections(state, `in`)
-
-        if (!automaticSwitching) {
-            return possibilities.contains(out)
-        }
-
-        if (!possibilities.contains(out)) return false
-
-        if (`in` == c.rootDirection) {
-            if (out == c.poweredDirection) {
-                world.setBlock(pos, state.setValue(POWERED, true), 2)
-                return true
-            } else if (out == c.unpoweredDirection) {
-                world.setBlock(pos, state.setValue<Boolean?, Boolean?>(POWERED, false), 2)
-                return true
-            }
-            return false
-        }
-
-        if (`in` == c.unpoweredDirection && out == c.rootDirection) {
-            world.setBlock(pos, state.setValue<Boolean?, Boolean?>(POWERED, false), 2)
-            return true
-        }
-
-        if (`in` == c.poweredDirection && out == c.rootDirection) {
-            world.setBlock(pos, state.setValue<Boolean?, Boolean?>(POWERED, true), 2)
-            return true
-        }
-
-        return false
+        return getPossibleOutputDirections(state, `in`).contains(out)
     }
 
     override fun getPossibleOutputDirections(state: BlockState, inputSide: Direction): Set<Direction> {
         val powered: Boolean = state.getValue(POWERED)
-        val poss = getRailConfiguration(state).getPossibleDirections(inputSide, automaticSwitching, powered)
+        val poss = getRailConfiguration(state).getPossibleDirections(inputSide, false, powered)
         return poss
     }
 
@@ -128,9 +97,9 @@ class TeeJunctionRail(pProperties: Properties, private val automaticSwitching: B
         return pState
     }
 
-    override fun createBlockStateDefinition(pBuilder: StateDefinition.Builder<Block?, BlockState?>) {
+    override fun createBlockStateDefinition(pBuilder: StateDefinition.Builder<Block, BlockState>) {
         super.createBlockStateDefinition(pBuilder)
-        pBuilder.add(WATERLOGGED, FACING, RAIL_SHAPE, POWERED)
+        pBuilder.add(WATERLOGGED, FACING, BlockStateProperties.RAIL_SHAPE, POWERED)
     }
 
     override fun neighborChanged(
@@ -142,7 +111,6 @@ class TeeJunctionRail(pProperties: Properties, private val automaticSwitching: B
         p_49382_: Boolean
     ) {
         super.neighborChanged(state, world, pos, p_49380_, p_361387_, p_49382_)
-        if (automaticSwitching) return
 
         if (!world.isClientSide) {
             val flag: Boolean = state.getValue(POWERED)
@@ -156,6 +124,4 @@ class TeeJunctionRail(pProperties: Properties, private val automaticSwitching: B
         return true
     }
 
-    override fun isAutomaticSwitching(): Boolean
-         = automaticSwitching
 }

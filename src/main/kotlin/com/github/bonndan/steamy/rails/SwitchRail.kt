@@ -16,14 +16,14 @@ import net.minecraft.world.level.block.Mirror
 import net.minecraft.world.level.block.Rotation
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.RailShape
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.level.redstone.Orientation
 import net.minecraft.world.phys.BlockHitResult
 
-class SwitchRail(pProperties: Properties, private val automaticSwitching: Boolean) :
-    AbstractMultiShapeRail(pProperties) {
+class SwitchRail(pProperties: Properties) : AbstractMultiShapeRail(pProperties) {
 
     enum class OutDirection(private val serializedName: String) : StringRepresentable {
         LEFT("left"),
@@ -48,10 +48,6 @@ class SwitchRail(pProperties: Properties, private val automaticSwitching: Boolea
         val blockstate: BlockState = super.defaultBlockState()
         return setFacing(blockstate, pContext.horizontalDirection)
             .setValue(WATERLOGGED, flag)
-            .setValue(
-                POWERED,
-                !automaticSwitching && pContext.level.hasNeighborSignal(pContext.clickedPos)
-            )
             .setValue(OUT_DIRECTION, OutDirection.RIGHT)
     }
 
@@ -61,14 +57,14 @@ class SwitchRail(pProperties: Properties, private val automaticSwitching: Boolea
 
     fun setFacing(state: BlockState, facing: Direction): BlockState {
         return state
-            .setValue(RAIL_SHAPE, getRailShapeFromFacing(facing))
-            .setValue<Direction?, Direction?>(FACING, facing)
+            .setValue(BlockStateProperties.RAIL_SHAPE, getRailShapeFromFacing(facing))
+            .setValue(FACING, facing)
     }
 
     private fun getRailConfiguration(state: BlockState): BranchingRailConfiguration {
         val out: OutDirection = state.getValue(OUT_DIRECTION)
 
-        val unpoweredDirection: Direction = state.getValue<Direction>(FACING)
+        val unpoweredDirection: Direction = state.getValue(FACING)
         val rootDirection = unpoweredDirection.opposite
         val poweredDirection = out.getOutDirection(rootDirection)
 
@@ -96,44 +92,14 @@ class SwitchRail(pProperties: Properties, private val automaticSwitching: Boolea
         out: Direction
     ): Boolean {
 
-        val configuration = getRailConfiguration(state)
-        val possibilities = getPossibleOutputDirections(state, `in`)
-
-        if (!automaticSwitching) {
-            return possibilities.contains(out)
-        }
-
-        if (!possibilities.contains(out)) return false
-
-        if (`in` == configuration.rootDirection) {
-            if (out == configuration.poweredDirection) {
-                world.setBlock(pos, state.setValue<Boolean, Boolean>(POWERED, true), 2)
-                return true
-            } else if (out == configuration.unpoweredDirection) {
-                world.setBlock(pos, state.setValue<Boolean, Boolean>(POWERED, false), 2)
-                return true
-            }
-            return false
-        }
-
-        if (`in` == configuration.unpoweredDirection && out == configuration.rootDirection) {
-            world.setBlock(pos, state.setValue<Boolean, Boolean>(POWERED, false), 2)
-            return true
-        }
-
-        if (`in` == configuration.poweredDirection && out == configuration.rootDirection) {
-            world.setBlock(pos, state.setValue<Boolean, Boolean>(POWERED, true), 2)
-            return true
-        }
-
-        return false
+        return getPossibleOutputDirections(state, `in`).contains(out)
     }
 
 
     override fun getPossibleOutputDirections(state: BlockState, inputSide: Direction): Set<Direction> {
         val c: BranchingRailConfiguration = getRailConfiguration(state)
         val powered: Boolean = state.getValue(POWERED)
-        return c.getPossibleDirections(inputSide, automaticSwitching, powered)
+        return c.getPossibleDirections(inputSide, false, powered)
     }
 
     override fun getPriorityDirectionsToCheck(state: BlockState, entrance: Direction): Set<Direction> {
@@ -149,9 +115,6 @@ class SwitchRail(pProperties: Properties, private val automaticSwitching: Boolea
     ): RailShape {
         return getRailDirection(state, level, pos, null)
     }
-
-    override fun isAutomaticSwitching(): Boolean
-         = automaticSwitching
 
     public override fun rotate(pState: BlockState, pRot: Rotation): BlockState {
         return setFacing(pState, pRot.rotate(pState.getValue(FACING)))
@@ -188,7 +151,7 @@ class SwitchRail(pProperties: Properties, private val automaticSwitching: Boolea
 
     override fun createBlockStateDefinition(pBuilder: StateDefinition.Builder<Block?, BlockState?>) {
         super.createBlockStateDefinition(pBuilder)
-        pBuilder.add(WATERLOGGED, FACING, RAIL_SHAPE, OUT_DIRECTION, POWERED)
+        pBuilder.add(WATERLOGGED, FACING, BlockStateProperties.RAIL_SHAPE, OUT_DIRECTION, POWERED)
     }
 
     override fun neighborChanged(
@@ -200,7 +163,6 @@ class SwitchRail(pProperties: Properties, private val automaticSwitching: Boolea
         p_49382_: Boolean
     ) {
         super.neighborChanged(state, world, pos, p_49380_, p_361387_, p_49382_)
-        if (automaticSwitching) return
 
         if (!world.isClientSide) {
             val flag = state.getValue(POWERED)

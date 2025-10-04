@@ -36,7 +36,7 @@ object ModItems {
             defaultItemProperties(1)
         )
 
-        SPRING = itemRegister.registerItem<Item>(
+        SPRING = itemRegister.registerItem(
             "spring",
             { it: Item.Properties -> SpringItem(it) },
             defaultItemProperties()

@@ -35,18 +35,19 @@ object ModBlocks {
 
         SWITCH_RAIL = register.registerBlock(
             "switch_rail",
-             { properties ->SwitchRail(properties, false) }
+            { SwitchRail(it) },
+            RAIL_BLOCK_BEHAVIOUR
         )
 
         TEE_JUNCTION_RAIL = register.registerBlock(
             "tee_junction_rail",
-             { properties -> TeeJunctionRail(properties, false) }
-
+            { TeeJunctionRail(it) },
+            RAIL_BLOCK_BEHAVIOUR
         )
 
         JUNCTION_RAIL = register.registerBlock(
             "junction_rail",
-             {properties -> JunctionRail(properties) },
+            { JunctionRail(it) },
             RAIL_BLOCK_BEHAVIOUR
         )
     }

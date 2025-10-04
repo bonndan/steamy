@@ -29,5 +29,4 @@ interface MultiShapeRail {
         direction: Direction
     ): RailShape
 
-    fun isAutomaticSwitching(): Boolean
 }

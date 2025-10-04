@@ -20,7 +20,7 @@ import net.minecraft.world.level.block.state.properties.RailShape
 import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.VoxelShape
 
-abstract class AbstractMultiShapeRail(pProperties: Properties,)  : BaseRailBlock(false, pProperties), MultiShapeRail {
+abstract class AbstractMultiShapeRail(pProperties: Properties) : BaseRailBlock(false, pProperties), MultiShapeRail {
 
     val SHAPE_FLAT: VoxelShape = column(16.0, 0.0, 2.0)
 
@@ -69,7 +69,7 @@ abstract class AbstractMultiShapeRail(pProperties: Properties,)  : BaseRailBlock
         val RAIL_SHAPE = RailShapeUtil.RAIL_SHAPE_STRAIGHT_FLAT
 
         // facing denotes direction of straight out
-        val FACING: EnumProperty<Direction?> = BlockStateProperties.HORIZONTAL_FACING
+        val FACING: EnumProperty<Direction> = BlockStateProperties.HORIZONTAL_FACING
         val OUT_DIRECTION = EnumProperty.create("out_direction", OutDirection::class.java)
 
         // is this rail track engaged?
