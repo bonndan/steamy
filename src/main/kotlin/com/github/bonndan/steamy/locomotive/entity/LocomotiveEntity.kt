@@ -6,8 +6,6 @@ import com.github.bonndan.steamy.setup.ModItems.SPRING
 import com.github.bonndan.steamy.setup.SetThrottlePacket
 import com.github.bonndan.steamy.setup.VehiclePacketHandler.sendToServer
 import com.github.bonndan.steamy.train.LinkableCart
-import com.github.bonndan.steamy.train.LinkableCart.Companion.DOMINANT_ID
-import com.github.bonndan.steamy.train.LinkableCart.Companion.DOMINATED_ID
 import com.github.bonndan.steamy.train.LinkingHandler
 import com.github.bonndan.steamy.train.RailHelper
 import net.minecraft.client.Minecraft
@@ -18,7 +16,9 @@ import net.minecraft.core.component.DataComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.network.syncher.EntityDataAccessor
 import net.minecraft.network.syncher.EntityDataSerializers
+import net.minecraft.network.syncher.EntityDataSerializers.INT
 import net.minecraft.network.syncher.SynchedEntityData
+import net.minecraft.network.syncher.SynchedEntityData.defineId
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.tags.ItemTags
@@ -49,7 +49,16 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
     val ZERO_SPEED = 0f
     val BRAKES = -0.5f
 
-    override val linkingHandler = LinkingHandler(this, DOMINANT_ID, DOMINATED_ID)
+    override val linkingHandler = LinkingHandler(this)
+
+
+    init {
+        linkingHandler.initWithEntityAndPosition(level, x, y, z)
+    }
+
+    override fun getDominatedIdAccessor(): EntityDataAccessor<Int> = DOMINATED_ID
+
+    override fun getDominantIdAccessor(): EntityDataAccessor<Int> = DOMINANT_ID
 
     override fun getOnPos(): BlockPos {
         return linkingHandler.getOnPos(this as AbstractMinecart)
@@ -452,7 +461,10 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
 
     companion object {
         val DATA_ID_THROTTLE: EntityDataAccessor<Float> =
-            SynchedEntityData.defineId(LocomotiveEntity::class.java, EntityDataSerializers.FLOAT)
+            defineId(LocomotiveEntity::class.java, EntityDataSerializers.FLOAT)
+
+        val DOMINANT_ID: EntityDataAccessor<Int> = defineId<Int>(LocomotiveEntity::class.java, INT)
+        val DOMINATED_ID: EntityDataAccessor<Int> = defineId<Int>(LocomotiveEntity::class.java, INT)
     }
 
 }

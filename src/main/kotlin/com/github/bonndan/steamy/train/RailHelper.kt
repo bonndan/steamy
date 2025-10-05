@@ -104,27 +104,7 @@ object RailHelper {
                     raildir.horizontal,
                     predicate,
                     limit - 1
-                ).map<Int?>(Function { ans: Int? -> ans!! + 1 })
-            })
-        })
-    }
-
-    fun getNext(
-        minecart: AbstractMinecart,
-        railpos: BlockPos,
-        direction: Direction
-    ): Optional<Pair<BlockPos?, Direction?>?> {
-        val shape: RailShape = getShape(minecart, railpos, direction)
-        val entrance = direction.opposite
-
-        return getOtherExit(entrance, shape).flatMap(Function { raildir ->
-            getRail(
-                if (raildir!!.above) railpos.relative(raildir.horizontal)
-                    .above() else railpos.relative(raildir.horizontal), minecart.level()
-            ).map(Function { pos: BlockPos? ->
-                Pair<BlockPos?, Direction?>(
-                    pos, raildir.horizontal
-                )
+                ).map(Function { ans: Int? -> ans!! + 1 })
             })
         })
     }
@@ -268,7 +248,7 @@ object RailHelper {
     }
 
     val EXITS: MutableMap<RailShape?, Pair<Vec3i, Vec3i>> =
-        Util.make<EnumMap<RailShape, Pair<Vec3i, Vec3i>>>(
+        Util.make(
             Maps.newEnumMap<RailShape, Pair<Vec3i, Vec3i>>(RailShape::class.java),
             Consumer { map ->
                 val west: Vec3i = getNormal(Direction.WEST)
@@ -385,23 +365,6 @@ object RailHelper {
                 .flatMap(Function { pos: BlockPos? -> targetRail.map(Function { rp: BlockPos? -> rp == pos }) })
                 .orElse(false)
         }
-    }
-
-    fun samePositionHeuristic(p: BlockPos): Function<BlockPos, Double> {
-        return (Function { p_123332_ -> p.distSqr(p_123332_) })
-    }
-
-    fun samePositionHeuristicSet(potentialDestinations: MutableSet<BlockPos>): Function<BlockPos, Double> {
-        return (Function { pos ->
-            potentialDestinations.stream()
-                .map { p -> p.distSqr(pos) }
-                .min(Comparator { obj, anotherDouble -> obj!!.compareTo(anotherDouble!!) })
-                .orElse(0.0)
-        })
-    }
-
-    fun toVec3(dir: Vec3i): Vec3 {
-        return Vec3(dir.x.toDouble(), dir.y.toDouble(), dir.z.toDouble())
     }
 
 }

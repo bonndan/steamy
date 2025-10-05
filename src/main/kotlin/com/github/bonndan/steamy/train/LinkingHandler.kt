@@ -21,11 +21,7 @@ import kotlin.math.floor
 
 const val DOMINANT = "dominant"
 
-class LinkingHandler<T>(
-    private val entity: T,
-    private val dominantID: EntityDataAccessor<Int>,
-    private val dominatedID: EntityDataAccessor<Int>
-) where T : AbstractMinecart, T : LinkableCart<T> {
+class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : LinkableCart<T> {
 
     private var waitForDominated = false
     private var linkData: LinkData? = null
@@ -66,8 +62,8 @@ class LinkingHandler<T>(
         } else if (waitForDominated) {
 
         }
-        entity.getEntityData().set(dominantID, leader.map { obj -> (obj as AbstractMinecart).id }.orElse(-1))
-        entity.getEntityData().set(dominatedID, follower.map { obj -> (obj as AbstractMinecart).id }.orElse(-1))
+        entity.getEntityData().set(entity.getDominantIdAccessor(), leader.map { obj -> (obj as AbstractMinecart).id }.orElse(-1))
+        entity.getEntityData().set(entity.getDominatedIdAccessor(), follower.map { obj -> (obj as AbstractMinecart).id }.orElse(-1))
     }
 
 
@@ -92,7 +88,7 @@ class LinkingHandler<T>(
 
     fun onSyncedDataUpdated(key: EntityDataAccessor<*>) {
         if (entity.level().isClientSide) {
-            if (dominatedID == key || dominantID == key) {
+            if (entity.getDominatedIdAccessor() == key || entity.getDominantIdAccessor() == key) {
                 fetchDominantClient()
                 fetchDominatedClient()
             }
@@ -100,7 +96,7 @@ class LinkingHandler<T>(
     }
 
     private fun fetchDominantClient() {
-        val potential = entity.level().getEntity(entity.getEntityData().get(dominantID))
+        val potential = entity.level().getEntity(entity.getEntityData().get(entity.getDominantIdAccessor()))
         if (potential is LinkableCart<*>) {
             leader = Optional.of(potential as LinkableCart<T>)
         } else {
@@ -132,7 +128,7 @@ class LinkingHandler<T>(
     }
 
     private fun fetchDominatedClient() {
-        val potential = entity.level().getEntity(entity.getEntityData().get(dominatedID))
+        val potential = entity.level().getEntity(entity.getEntityData().get(entity.getDominatedIdAccessor()))
         if (potential is LinkableCart<*>) {
             follower = Optional.of(potential as LinkableCart<T>)
         } else {
@@ -282,18 +278,5 @@ class LinkingHandler<T>(
         })
     }
 
-    companion object {
-        fun defineSynchedData(
-            entity: Entity,
-            dominantID: EntityDataAccessor<Int>,
-            dominatedID: EntityDataAccessor<Int>
-        ) {
-            entity.getEntityData().set(dominantID, -1)
-            entity.getEntityData().set(dominatedID, -1)
-        }
-    }
-
     class LinkData(var uuid: String?, var hasChild: Boolean, var x: Double, var y: Double, var z: Double)
-
-
 }

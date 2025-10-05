@@ -6,8 +6,6 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Vec3i
 import net.minecraft.network.chat.Component
 import net.minecraft.network.syncher.EntityDataAccessor
-import net.minecraft.network.syncher.EntityDataSerializers
-import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.tags.BlockTags
 import net.minecraft.util.Mth
@@ -34,11 +32,24 @@ import kotlin.math.sqrt
  * fun getOnPos(): BlockPos {
  *          return linkingHandler.getOnPos(this as AbstractMinecart)
  *      }
+ *
+ *  - add data accessors for the concrete subclass, for example:
+ *    val DOMINANT_ID: EntityDataAccessor<Int> = defineId<Int>(XXX::class.java, INT)
+ *    val DOMINATED_ID: EntityDataAccessor<Int> = defineId<Int>(XXX::class.java, INT)
+ *
+ *    override fun defineSynchedData(builder: SynchedEntityData.Builder) {
+ *         super.defineSynchedData(builder)
+ *         builder.define(xxx, 0f)
+ *         builder.define(DOMINANT_ID, -1)
+ *         builder.define(DOMINATED_ID, -1)
+ *     }
  */
 interface LinkableCart<T> where T : AbstractMinecart, T : LinkableCart<T> {
 
     val linkingHandler: LinkingHandler<T>
 
+    fun getDominantIdAccessor(): EntityDataAccessor<Int>
+    fun getDominatedIdAccessor(): EntityDataAccessor<Int>
 
     fun getTrain(): Train<T> {
         return linkingHandler.train
@@ -422,18 +433,7 @@ interface LinkableCart<T> where T : AbstractMinecart, T : LinkableCart<T> {
         }
     }
 
-
-    companion object {
-        //TODO AbstractMinecart might not work
-        val DOMINANT_ID: EntityDataAccessor<Int> =
-            SynchedEntityData.defineId<Int>(AbstractMinecart::class.java, EntityDataSerializers.INT)
-        val DOMINATED_ID: EntityDataAccessor<Int> =
-            SynchedEntityData.defineId<Int>(AbstractMinecart::class.java, EntityDataSerializers.INT)
-
-        private fun swap(pair: Pair<LinkableCart<*>, LinkableCart<*>>): Pair<LinkableCart<*>, LinkableCart<*>> {
-            return Pair(pair.second, pair.first)
-        }
-
-
+    private fun swap(pair: Pair<LinkableCart<T>, LinkableCart<T>>): Pair<LinkableCart<T>, LinkableCart<T>> {
+        return Pair(pair.second, pair.first)
     }
 }
