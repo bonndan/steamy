@@ -10,7 +10,6 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.*
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
-import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.RailShape
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.material.Fluids
@@ -23,7 +22,7 @@ class JunctionRail(pProperties: Properties) : AbstractMultiShapeRail(pProperties
         val blockstate: BlockState = super.defaultBlockState()
         return blockstate
             .setValue(WATERLOGGED, flag)
-            .setValue(BlockStateProperties.RAIL_SHAPE, RailShapeUtil.DEFAULT)
+            .setValue(RAIL_SHAPE, RailShapeUtil.DEFAULT)
     }
 
     override fun getRailDirection(
@@ -33,25 +32,19 @@ class JunctionRail(pProperties: Properties) : AbstractMultiShapeRail(pProperties
         cart: AbstractMinecart?
     ): RailShape {
         if (cart == null) {
-            return state.getValue(this.shapeProperty)
+            return state.getValue(RAIL_SHAPE)
         }
 
-        return if (RailHelper.directionFromVelocity(cart.deltaMovement)
-                .axis === Direction.Axis.X
-        ) RailShape.EAST_WEST else RailShape.NORTH_SOUTH
-    }
-
-    public override fun rotate(pState: BlockState, pRot: Rotation): BlockState {
-        return pState
-    }
-
-    public override fun mirror(pState: BlockState, pMirror: Mirror): BlockState {
-        return pState
+        return if (RailHelper.directionFromVelocity(cart.deltaMovement).axis === Direction.Axis.X) {
+            RailShape.EAST_WEST
+        } else {
+            RailShape.NORTH_SOUTH
+        }
     }
 
     override fun createBlockStateDefinition(pBuilder: StateDefinition.Builder<Block?, BlockState?>) {
         super.createBlockStateDefinition(pBuilder)
-        pBuilder.add(WATERLOGGED, BlockStateProperties.RAIL_SHAPE)
+        pBuilder.add(WATERLOGGED, RAIL_SHAPE)
     }
 
     override fun setRailState(

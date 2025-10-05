@@ -7,6 +7,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.RailShape
 
 interface MultiShapeRail {
+
     /**
      * Set the automatic rail state of this rail
      * @param state current blockstate of the rail

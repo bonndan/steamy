@@ -80,7 +80,7 @@ class SwitchRail(pProperties: Properties) : AbstractMultiShapeRail(pProperties) 
         val c: BranchingRailConfiguration = getRailConfiguration(state)
         return RailShapeUtil.getRailShape(
             c.rootDirection,
-            if (state.getValue(POWERED)) c.poweredDirection else c.unpoweredDirection
+            if (state.getValue(BlockStateProperties.POWERED)) c.poweredDirection else c.unpoweredDirection
         )
     }
 
@@ -98,7 +98,7 @@ class SwitchRail(pProperties: Properties) : AbstractMultiShapeRail(pProperties) 
 
     override fun getPossibleOutputDirections(state: BlockState, inputSide: Direction): Set<Direction> {
         val c: BranchingRailConfiguration = getRailConfiguration(state)
-        val powered: Boolean = state.getValue(POWERED)
+        val powered: Boolean = state.getValue(BlockStateProperties.POWERED)
         return c.getPossibleDirections(inputSide, false, powered)
     }
 
@@ -151,7 +151,7 @@ class SwitchRail(pProperties: Properties) : AbstractMultiShapeRail(pProperties) 
 
     override fun createBlockStateDefinition(pBuilder: StateDefinition.Builder<Block?, BlockState?>) {
         super.createBlockStateDefinition(pBuilder)
-        pBuilder.add(WATERLOGGED, FACING, BlockStateProperties.RAIL_SHAPE, OUT_DIRECTION, POWERED)
+        pBuilder.add(WATERLOGGED, FACING, BlockStateProperties.RAIL_SHAPE, OUT_DIRECTION, BlockStateProperties.POWERED)
     }
 
     override fun neighborChanged(
@@ -165,9 +165,9 @@ class SwitchRail(pProperties: Properties) : AbstractMultiShapeRail(pProperties) 
         super.neighborChanged(state, world, pos, p_49380_, p_361387_, p_49382_)
 
         if (!world.isClientSide) {
-            val flag = state.getValue(POWERED)
+            val flag = state.getValue(BlockStateProperties.POWERED)
             if (flag != world.hasNeighborSignal(pos)) {
-                world.setBlock(pos, state.cycle<Boolean>(POWERED), 2)
+                world.setBlock(pos, state.cycle<Boolean>(BlockStateProperties.POWERED), 2)
             }
         }
     }

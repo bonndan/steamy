@@ -19,6 +19,9 @@ object ModBlocks {
 
     private val PRIVATE_TAB_REGISTRY = MultiMap<ResourceKey<CreativeModeTab>, Supplier<BlockItem>>()
     private val RAIL_BLOCK_BEHAVIOUR = BlockBehaviour.Properties.ofFullCopy(Blocks.RAIL)
+        .noOcclusion()
+        .isViewBlocking { _, _, _ -> false }
+        .isSuffocating { _, _, _ -> false }
 
     lateinit var SWITCH_RAIL: DeferredHolder<Block, SwitchRail>
 

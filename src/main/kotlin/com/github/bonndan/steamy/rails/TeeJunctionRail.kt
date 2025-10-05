@@ -12,6 +12,7 @@ import net.minecraft.world.level.block.Rotation
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.*
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.level.redstone.Orientation
@@ -26,7 +27,7 @@ class TeeJunctionRail(pProperties: Properties) :
 
         return setFacing(blockstate, pContext.horizontalDirection)
             .setValue(WATERLOGGED, flag)
-            .setValue(POWERED, pContext.level.hasNeighborSignal(pContext.clickedPos))
+            .setValue(BlockStateProperties.POWERED, pContext.level.hasNeighborSignal(pContext.clickedPos))
     }
 
     private fun getRailShapeFromFacing(facing: Direction): RailShape {
@@ -60,7 +61,7 @@ class TeeJunctionRail(pProperties: Properties) :
         cart: AbstractMinecart?
     ): RailShape {
         val c = getRailConfiguration(state)
-        val outDirection = if (state.getValue(POWERED)) c.poweredDirection else c.unpoweredDirection
+        val outDirection = if (state.getValue(BlockStateProperties.POWERED)) c.poweredDirection else c.unpoweredDirection
         return RailShapeUtil.getRailShape(c.rootDirection, outDirection)
     }
 
@@ -75,7 +76,7 @@ class TeeJunctionRail(pProperties: Properties) :
     }
 
     override fun getPossibleOutputDirections(state: BlockState, inputSide: Direction): Set<Direction> {
-        val powered: Boolean = state.getValue(POWERED)
+        val powered: Boolean = state.getValue(BlockStateProperties.POWERED)
         val poss = getRailConfiguration(state).getPossibleDirections(inputSide, false, powered)
         return poss
     }
@@ -99,7 +100,7 @@ class TeeJunctionRail(pProperties: Properties) :
 
     override fun createBlockStateDefinition(pBuilder: StateDefinition.Builder<Block, BlockState>) {
         super.createBlockStateDefinition(pBuilder)
-        pBuilder.add(WATERLOGGED, FACING, BlockStateProperties.RAIL_SHAPE, POWERED)
+        pBuilder.add(WATERLOGGED, FACING, BlockStateProperties.RAIL_SHAPE, BlockStateProperties.POWERED)
     }
 
     override fun neighborChanged(
@@ -113,9 +114,9 @@ class TeeJunctionRail(pProperties: Properties) :
         super.neighborChanged(state, world, pos, p_49380_, p_361387_, p_49382_)
 
         if (!world.isClientSide) {
-            val flag: Boolean = state.getValue(POWERED)
+            val flag: Boolean = state.getValue(BlockStateProperties.POWERED)
             if (flag != world.hasNeighborSignal(pos)) {
-                world.setBlock(pos, state.cycle(POWERED), 2)
+                world.setBlock(pos, state.cycle(BlockStateProperties.POWERED), 2)
             }
         }
     }

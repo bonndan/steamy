@@ -37,11 +37,6 @@ class RailHelper(private val minecart: AbstractTrainCarEntity) {
         }
     }
 
-    fun getShape(pos: BlockPos): RailShape {
-        val state: BlockState = minecart.level().getBlockState(pos)
-        return (state.block as BaseRailBlock).getRailDirection(state, minecart.level(), pos, minecart)
-    }
-
     fun getShape(pos: BlockPos, direction: Direction): RailShape {
         val state: BlockState = minecart.level().getBlockState(pos)
         if (state.block is MultiShapeRail) {

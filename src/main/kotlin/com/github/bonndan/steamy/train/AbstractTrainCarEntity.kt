@@ -38,7 +38,7 @@ import kotlin.math.*
 abstract class AbstractTrainCarEntity : AbstractMinecart {
 
     protected val linkingHandler = LinkingHandler(this, DOMINANT_ID, DOMINATED_ID)
-    protected lateinit var railHelper: RailHelper
+    protected var railHelper: RailHelper
 
     constructor(entityType: EntityType<*>, level: Level) : super(entityType, level) {
         linkingHandler.train = Train(this)
@@ -193,16 +193,16 @@ abstract class AbstractTrainCarEntity : AbstractMinecart {
         isCustomNameVisible = true
     }
 
-    protected val railShape: Optional<RailShape>
-        get() {
-            for (pos in listOf<BlockPos>(this.onPos.above(), this.onPos)) {
-                val state: BlockState = level().getBlockState(pos)
-                if (state.block is BaseRailBlock) {
-                    return Optional.of(railHelper.getShape(pos))
-                }
+    protected fun getRailShape(): Optional<RailShape> {
+        for (pos in listOf<BlockPos>(this.onPos.above(), this.onPos)) {
+            val state: BlockState = level().getBlockState(pos)
+            val block = state.block
+            if (block is BaseRailBlock) {
+                return Optional.of(block.getRailDirection(state, level(), pos, this))
             }
-            return Optional.empty()
         }
+        return Optional.empty()
+    }
 
     protected override fun readAdditionalSaveData(valueInput: ValueInput) {
         super.readAdditionalSaveData(valueInput)
@@ -345,8 +345,8 @@ abstract class AbstractTrainCarEntity : AbstractMinecart {
     fun computeYaw(): Float {
         val yrot = this.yRot
         // if the car is part of a train, enforce that direction instead
-        val railShape: Optional<RailShape> = this.railShape
-        if (linkingHandler!!.follower.isPresent && railShape.isPresent) {
+        val railShape = this.getRailShape()
+        if (linkingHandler.follower.isPresent && railShape.isPresent) {
             val r = railHelper.traverseBi(
                 this.onPos.above(),
                 RailHelper.samePositionPredicate(linkingHandler.follower.get()), 5, this
@@ -573,19 +573,6 @@ abstract class AbstractTrainCarEntity : AbstractMinecart {
                 spawnChain()
             }
         }
-    }
-
-
-    protected fun prevent180() {
-        val dir: Vec3 = Vec3(
-            this.direction.stepX.toDouble(),
-            this.direction.stepY.toDouble(),
-            this.direction.stepZ.toDouble()
-        )
-        val vel: Vec3 = this.deltaMovement
-        val mag: Vec3 = vel.multiply(dir)
-        val fixer: Vec3 = Vec3(fixUtil(mag.x), 1.0, fixUtil(mag.z))
-        this.deltaMovement = this.deltaMovement.multiply(fixer)
     }
 
     private fun fixUtil(mag: Double): Double {

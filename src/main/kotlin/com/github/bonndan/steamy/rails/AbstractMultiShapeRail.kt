@@ -72,7 +72,5 @@ abstract class AbstractMultiShapeRail(pProperties: Properties) : BaseRailBlock(f
         val FACING: EnumProperty<Direction> = BlockStateProperties.HORIZONTAL_FACING
         val OUT_DIRECTION = EnumProperty.create("out_direction", OutDirection::class.java)
 
-        // is this rail track engaged?
-        val POWERED = BlockStateProperties.POWERED
     }
 }
