@@ -6,6 +6,7 @@ import net.minecraft.Util
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.Vec3i
+import net.minecraft.world.entity.vehicle.AbstractMinecart
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.BaseRailBlock
 import net.minecraft.world.level.block.Blocks
@@ -20,7 +21,7 @@ import java.util.stream.Collectors
 import kotlin.math.abs
 
 
-class RailHelper(private val minecart: AbstractTrainCarEntity) {
+object RailHelper {
 
     class RailDir {
         var horizontal: Direction
@@ -37,7 +38,7 @@ class RailHelper(private val minecart: AbstractTrainCarEntity) {
         }
     }
 
-    fun getShape(pos: BlockPos, direction: Direction): RailShape {
+    fun getShape(minecart: AbstractMinecart, pos: BlockPos, direction: Direction): RailShape {
         val state: BlockState = minecart.level().getBlockState(pos)
         if (state.block is MultiShapeRail) {
             return (state.block as MultiShapeRail).getVanillaRailShapeFromDirection(
@@ -50,26 +51,27 @@ class RailHelper(private val minecart: AbstractTrainCarEntity) {
 
 
     fun traverseBi(
+        minecart: AbstractMinecart,
         railPos: BlockPos,
         predicate: BiPredicate<Direction, BlockPos>,
         limit: Int,
-        car: AbstractTrainCarEntity
+        car: AbstractMinecart
     ): Optional<Pair<Direction, Int>> {
 
         return getRail(railPos, minecart.level())
             .flatMap(Function { pos ->
-                val shape: RailShape = getShape(pos, car.direction.opposite)
+                val shape: RailShape = getShape(minecart, pos, car.direction.opposite)
                 val dirs = EXITS_DIRECTION.get(shape)!!
-                val first = traverse(pos, minecart.level(), dirs.second.horizontal.opposite, predicate, limit)
-                val second = traverse(pos, minecart.level(), dirs.first.horizontal.opposite, predicate, limit)
+                val first = traverse(minecart, pos, minecart.level(), dirs.second.horizontal.opposite, predicate, limit)
+                val second = traverse(minecart, pos, minecart.level(), dirs.first.horizontal.opposite, predicate, limit)
                 val result: Optional<Pair<Direction, Int>> = if (second.isEmpty) {
-                    first.map(Function { i -> Pair(dirs.first!!.horizontal, i) })
+                    first.map(Function { i -> Pair(dirs.first.horizontal, i) })
                 } else if (first.isEmpty) {
-                    second.map(Function { i -> Pair(dirs.second!!.horizontal, i) })
+                    second.map(Function { i -> Pair(dirs.second.horizontal, i) })
                 } else {
                     Optional.of(
                         if (first.get() < second.get()) Pair(dirs.first.horizontal, first.get())
-                        else Pair(dirs.second!!.horizontal, second.get())
+                        else Pair(dirs.second.horizontal, second.get())
                     )
                 }
 
@@ -78,6 +80,7 @@ class RailHelper(private val minecart: AbstractTrainCarEntity) {
     }
 
     fun traverse(
+        minecart: AbstractMinecart,
         railPos: BlockPos,
         level: Level,
         prevExitTaken: Direction,
@@ -91,9 +94,10 @@ class RailHelper(private val minecart: AbstractTrainCarEntity) {
         }
         val entrance = prevExitTaken.opposite
         return getRail(railPos, level).flatMap(Function { pos ->
-            val shape: RailShape = getShape(pos, prevExitTaken)
+            val shape: RailShape = getShape(minecart, pos, prevExitTaken)
             getOtherExit(entrance, shape).flatMap(Function { raildir: RailDir? ->
                 traverse(
+                    minecart,
                     if (raildir!!.above) pos.relative(raildir.horizontal)
                         .above() else pos.relative(raildir.horizontal),
                     level,
@@ -106,12 +110,14 @@ class RailHelper(private val minecart: AbstractTrainCarEntity) {
     }
 
     fun getNext(
-        railpos: BlockPos, direction: Direction
+        minecart: AbstractMinecart,
+        railpos: BlockPos,
+        direction: Direction
     ): Optional<Pair<BlockPos?, Direction?>?> {
-        val shape: RailShape = getShape(railpos, direction)
+        val shape: RailShape = getShape(minecart, railpos, direction)
         val entrance = direction.opposite
 
-        return getOtherExit(entrance, shape).flatMap<Pair<BlockPos?, Direction?>?>(Function { raildir: RailDir? ->
+        return getOtherExit(entrance, shape).flatMap(Function { raildir ->
             getRail(
                 if (raildir!!.above) railpos.relative(raildir.horizontal)
                     .above() else railpos.relative(raildir.horizontal), minecart.level()
@@ -141,7 +147,9 @@ class RailHelper(private val minecart: AbstractTrainCarEntity) {
      * @param prevExitTaken the direction of travel for the train
      */
     private fun getNextNodes(
-        pos: BlockPos, prevExitTaken: Direction
+        minecart: AbstractMinecart,
+        pos: BlockPos,
+        prevExitTaken: Direction
     ): MutableList<RailDir> {
         val inputSide = prevExitTaken.opposite
 
@@ -156,7 +164,7 @@ class RailHelper(private val minecart: AbstractTrainCarEntity) {
                 .collect(Collectors.toList())
         }
 
-        val shape: RailShape = getShape(pos, prevExitTaken)
+        val shape: RailShape = getShape(minecart, pos, prevExitTaken)
         val shapes: MutableList<RailShape?> = mutableListOf(shape)
         return shapes.stream().map<RailDir?> { shape1: RailShape? ->
             val dirs = EXITS_DIRECTION[shape]!!
@@ -170,7 +178,10 @@ class RailHelper(private val minecart: AbstractTrainCarEntity) {
     }
 
     fun pathfind(
-        railPos: BlockPos, prevDirTaken: Direction, heuristic: Function<BlockPos, Double>
+        minecart: AbstractMinecart,
+        railPos: BlockPos,
+        prevDirTaken: Direction,
+        heuristic: Function<BlockPos, Double>
     ): Optional<RailPathFindNode> {
         val visited: MutableSet<Pair<BlockPos?, Direction?>?> = HashSet()
         val queue = PriorityQueue<RailPathFindNode>()
@@ -193,7 +204,7 @@ class RailHelper(private val minecart: AbstractTrainCarEntity) {
                 )
             )
 
-            getNextNodes(curr.pos, curr.prevExitTaken)!!.forEach(Consumer { raildir: RailDir? ->
+            getNextNodes(minecart, curr.pos, curr.prevExitTaken).forEach(Consumer { raildir: RailDir? ->
                 val pos: BlockPos = if (raildir!!.above) curr.pos.relative(raildir.horizontal)
                     .above() else curr.pos.relative(raildir.horizontal)
                 if (minecart.level().getBlockState(pos).`is`(Blocks.VOID_AIR)) {
@@ -218,6 +229,7 @@ class RailHelper(private val minecart: AbstractTrainCarEntity) {
     }
 
     fun pickCheaperDir(
+        minecart: AbstractMinecart,
         directions: MutableList<Direction>,
         pos: BlockPos,
         heuristic: Function<BlockPos, Double>,
@@ -237,7 +249,7 @@ class RailHelper(private val minecart: AbstractTrainCarEntity) {
         if (hasOutputDirections.isEmpty()) return directions.get(0)
 
         val hasPath: MutableList<Pair<Direction, RailPathFindNode>> = hasOutputDirections.stream()
-            .map { p -> Pair(p!!.first, pathfind(p.second, p.first!!, heuristic)) }
+            .map { p -> Pair(p!!.first, pathfind(minecart, p.second, p.first, heuristic)) }
             .filter { p -> p!!.second!!.isPresent }
             .map { p -> Pair(p!!.first, p.second!!.get()) }
             .collect(Collectors.toList())
@@ -251,148 +263,145 @@ class RailHelper(private val minecart: AbstractTrainCarEntity) {
         return best.first
     }
 
-    companion object {
-        private fun getNormal(dir: Direction): Vec3i {
-            return Vec3i(dir.stepX, dir.stepY, dir.stepZ)
-        }
+    private fun getNormal(dir: Direction): Vec3i {
+        return Vec3i(dir.stepX, dir.stepY, dir.stepZ)
+    }
 
-        val EXITS: MutableMap<RailShape?, Pair<Vec3i, Vec3i>> =
-            Util.make<EnumMap<RailShape, Pair<Vec3i, Vec3i>>>(
-                Maps.newEnumMap<RailShape, Pair<Vec3i, Vec3i>>(RailShape::class.java),
-                Consumer { map ->
-                    val west: Vec3i = getNormal(Direction.WEST)
-                    val east: Vec3i = getNormal(Direction.EAST)
-                    val north: Vec3i = getNormal(Direction.NORTH)
-                    val south: Vec3i = getNormal(Direction.SOUTH)
-                    val westb: Vec3i = west.below()
-                    val eastb: Vec3i = east.below()
-                    val nothb: Vec3i = north.below()
-                    val southb: Vec3i = south.below()
-                    map[RailShape.NORTH_SOUTH] = Pair(north, south)
-                    map[RailShape.EAST_WEST] = Pair(west, east)
-                    map[RailShape.ASCENDING_EAST] = Pair(westb, east)
-                    map[RailShape.ASCENDING_WEST] = Pair(west, eastb)
-                    map[RailShape.ASCENDING_NORTH] = Pair(north, southb)
-                    map[RailShape.ASCENDING_SOUTH] = Pair(nothb, south)
-                    map[RailShape.SOUTH_EAST] = Pair(south, east)
-                    map[RailShape.SOUTH_WEST] = Pair(south, west)
-                    map[RailShape.NORTH_WEST] = Pair(north, west)
-                    map[RailShape.NORTH_EAST] = Pair(north, east)
-                })
+    val EXITS: MutableMap<RailShape?, Pair<Vec3i, Vec3i>> =
+        Util.make<EnumMap<RailShape, Pair<Vec3i, Vec3i>>>(
+            Maps.newEnumMap<RailShape, Pair<Vec3i, Vec3i>>(RailShape::class.java),
+            Consumer { map ->
+                val west: Vec3i = getNormal(Direction.WEST)
+                val east: Vec3i = getNormal(Direction.EAST)
+                val north: Vec3i = getNormal(Direction.NORTH)
+                val south: Vec3i = getNormal(Direction.SOUTH)
+                val westb: Vec3i = west.below()
+                val eastb: Vec3i = east.below()
+                val nothb: Vec3i = north.below()
+                val southb: Vec3i = south.below()
+                map[RailShape.NORTH_SOUTH] = Pair(north, south)
+                map[RailShape.EAST_WEST] = Pair(west, east)
+                map[RailShape.ASCENDING_EAST] = Pair(westb, east)
+                map[RailShape.ASCENDING_WEST] = Pair(west, eastb)
+                map[RailShape.ASCENDING_NORTH] = Pair(north, southb)
+                map[RailShape.ASCENDING_SOUTH] = Pair(nothb, south)
+                map[RailShape.SOUTH_EAST] = Pair(south, east)
+                map[RailShape.SOUTH_WEST] = Pair(south, west)
+                map[RailShape.NORTH_WEST] = Pair(north, west)
+                map[RailShape.NORTH_EAST] = Pair(north, east)
+            })
 
-        private const val MAX_VISITED = 200
+    private const val MAX_VISITED = 200
 
-        val EXITS_DIRECTION: MutableMap<RailShape, Pair<RailDir, RailDir>> =
-            Util.make<EnumMap<RailShape, Pair<RailDir, RailDir>>>(
-                Maps.newEnumMap<RailShape, Pair<RailDir, RailDir>>(
-                    RailShape::class.java
-                ), Consumer { map ->
-                    map[RailShape.NORTH_SOUTH] = Pair(RailDir(Direction.NORTH), RailDir(Direction.SOUTH))
-                    map[RailShape.EAST_WEST] = Pair(
-                        RailDir(Direction.WEST), RailDir(Direction.EAST)
-                    )
-                    map[RailShape.ASCENDING_EAST] = Pair(
-                        RailDir(Direction.WEST), RailDir(Direction.EAST, true)
-                    )
-                    map[RailShape.ASCENDING_WEST] = Pair(
-                        RailDir(
-                            Direction.WEST, true
-                        ), RailDir(Direction.EAST)
-                    )
-                    map[RailShape.ASCENDING_NORTH] = Pair(
-                        RailDir(
-                            Direction.NORTH, true
-                        ), RailDir(Direction.SOUTH)
-                    )
-                    map[RailShape.ASCENDING_SOUTH] = Pair(
-                        RailDir(Direction.NORTH), RailDir(Direction.SOUTH, true)
-                    )
-                    map[RailShape.SOUTH_EAST] = Pair(
-                        RailDir(Direction.SOUTH), RailDir(Direction.EAST)
-                    )
-                    map[RailShape.SOUTH_WEST] = Pair(
-                        RailDir(Direction.WEST), RailDir(Direction.SOUTH)
-                    )
-                    map[RailShape.NORTH_WEST] = Pair(
-                        RailDir(Direction.WEST), RailDir(Direction.NORTH)
-                    )
-                    map[RailShape.NORTH_EAST] = Pair(
-                        RailDir(Direction.NORTH), RailDir(Direction.EAST)
-                    )
-                })
+    val EXITS_DIRECTION: MutableMap<RailShape, Pair<RailDir, RailDir>> =
+        Util.make<EnumMap<RailShape, Pair<RailDir, RailDir>>>(
+            Maps.newEnumMap<RailShape, Pair<RailDir, RailDir>>(
+                RailShape::class.java
+            ), Consumer { map ->
+                map[RailShape.NORTH_SOUTH] = Pair(RailDir(Direction.NORTH), RailDir(Direction.SOUTH))
+                map[RailShape.EAST_WEST] = Pair(
+                    RailDir(Direction.WEST), RailDir(Direction.EAST)
+                )
+                map[RailShape.ASCENDING_EAST] = Pair(
+                    RailDir(Direction.WEST), RailDir(Direction.EAST, true)
+                )
+                map[RailShape.ASCENDING_WEST] = Pair(
+                    RailDir(
+                        Direction.WEST, true
+                    ), RailDir(Direction.EAST)
+                )
+                map[RailShape.ASCENDING_NORTH] = Pair(
+                    RailDir(
+                        Direction.NORTH, true
+                    ), RailDir(Direction.SOUTH)
+                )
+                map[RailShape.ASCENDING_SOUTH] = Pair(
+                    RailDir(Direction.NORTH), RailDir(Direction.SOUTH, true)
+                )
+                map[RailShape.SOUTH_EAST] = Pair(
+                    RailDir(Direction.SOUTH), RailDir(Direction.EAST)
+                )
+                map[RailShape.SOUTH_WEST] = Pair(
+                    RailDir(Direction.WEST), RailDir(Direction.SOUTH)
+                )
+                map[RailShape.NORTH_WEST] = Pair(
+                    RailDir(Direction.WEST), RailDir(Direction.NORTH)
+                )
+                map[RailShape.NORTH_EAST] = Pair(
+                    RailDir(Direction.NORTH), RailDir(Direction.EAST)
+                )
+            })
 
-        fun getShape(pos: BlockPos, level: Level): RailShape {
+    fun getShape(pos: BlockPos, level: Level): RailShape {
+        val state: BlockState = level.getBlockState(pos)
+        return (state.block as BaseRailBlock).getRailDirection(state, level, pos, null)
+    }
+
+    fun getRail(
+        inpos: BlockPos, level: Level
+    ): Optional<BlockPos> { // if using with carts, pass in getOnPos.above
+        for (pos in listOf(inpos, inpos.below())) { // check for ascending rail.
             val state: BlockState = level.getBlockState(pos)
-            return (state.block as BaseRailBlock).getRailDirection(state, level, pos, null)
-        }
-
-        fun getRail(
-            inpos: BlockPos, level: Level
-        ): Optional<BlockPos> { // if using with carts, pass in getOnPos.above
-            for (pos in listOf(inpos, inpos.below())) { // check for ascending rail.
-                val state: BlockState = level.getBlockState(pos)
-                if (state.block is BaseRailBlock) {
-                    return Optional.of(pos)
-                }
-            }
-            return Optional.empty()
-        }
-
-        fun directionFromVelocity(deltaMovement: Vec3): Direction {
-            if (abs(deltaMovement.x) > abs(deltaMovement.z)) {
-                return if (deltaMovement.x > 0) Direction.EAST else Direction.WEST
-            } else {
-                return if (deltaMovement.z > 0) Direction.SOUTH else Direction.NORTH
+            if (state.block is BaseRailBlock) {
+                return Optional.of(pos)
             }
         }
+        return Optional.empty()
+    }
 
-        fun getOtherExit(direction: Direction?, shape: RailShape?): Optional<RailDir> {
-
-            val dirs = EXITS_DIRECTION[shape]!!
-
-            return if (dirs.first.horizontal == direction) {
-                Optional.of(dirs.second)
-            } else if (dirs.second.horizontal == direction) {
-                Optional.of(dirs.first)
-            } else {
-                Optional.empty()
-            }
-        }
-
-        fun getDirectionToOtherExit(
-            direction: Direction, shape: RailShape?
-        ): Optional<Vec3i?> {
-            return getOtherExit(direction, shape).map<Vec3i?>(Function { other: RailDir? ->
-                getNormal(direction).subtract(getNormal(other!!.horizontal))
-            })
-        }
-
-        fun samePositionPredicate(entity: AbstractTrainCarEntity): BiPredicate<Direction, BlockPos> {
-            val targetRail = getRail(entity.getOnPos().above(), entity.level())
-            return BiPredicate { direction: Direction?, p ->
-                getRail(p, entity.level())
-                    .flatMap(Function { pos: BlockPos? -> targetRail.map(Function { rp: BlockPos? -> rp == pos }) })
-                    .orElse(false)
-            }
-        }
-
-        fun samePositionHeuristic(p: BlockPos): Function<BlockPos, Double> {
-            return (Function { p_123332_ -> p.distSqr(p_123332_) })
-        }
-
-        fun samePositionHeuristicSet(potentialDestinations: MutableSet<BlockPos>): Function<BlockPos, Double> {
-            return (Function { pos ->
-                potentialDestinations.stream()
-                    .map { p -> p.distSqr(pos) }
-                    .min(Comparator { obj, anotherDouble -> obj!!.compareTo(anotherDouble!!) })
-                    .orElse(0.0)
-            })
-        }
-
-        fun toVec3(dir: Vec3i): Vec3 {
-            return Vec3(dir.x.toDouble(), dir.y.toDouble(), dir.z.toDouble())
+    fun directionFromVelocity(deltaMovement: Vec3): Direction {
+        if (abs(deltaMovement.x) > abs(deltaMovement.z)) {
+            return if (deltaMovement.x > 0) Direction.EAST else Direction.WEST
+        } else {
+            return if (deltaMovement.z > 0) Direction.SOUTH else Direction.NORTH
         }
     }
 
+    fun getOtherExit(direction: Direction?, shape: RailShape?): Optional<RailDir> {
+
+        val dirs = EXITS_DIRECTION[shape]!!
+
+        return if (dirs.first.horizontal == direction) {
+            Optional.of(dirs.second)
+        } else if (dirs.second.horizontal == direction) {
+            Optional.of(dirs.first)
+        } else {
+            Optional.empty()
+        }
+    }
+
+    fun getDirectionToOtherExit(
+        direction: Direction, shape: RailShape?
+    ): Optional<Vec3i?> {
+        return getOtherExit(direction, shape).map<Vec3i?>(Function { other: RailDir? ->
+            getNormal(direction).subtract(getNormal(other!!.horizontal))
+        })
+    }
+
+    fun samePositionPredicate(entity: AbstractMinecart): BiPredicate<Direction, BlockPos> {
+        val targetRail = getRail(entity.getOnPos().above(), entity.level())
+        return BiPredicate { direction: Direction?, p ->
+            getRail(p, entity.level())
+                .flatMap(Function { pos: BlockPos? -> targetRail.map(Function { rp: BlockPos? -> rp == pos }) })
+                .orElse(false)
+        }
+    }
+
+    fun samePositionHeuristic(p: BlockPos): Function<BlockPos, Double> {
+        return (Function { p_123332_ -> p.distSqr(p_123332_) })
+    }
+
+    fun samePositionHeuristicSet(potentialDestinations: MutableSet<BlockPos>): Function<BlockPos, Double> {
+        return (Function { pos ->
+            potentialDestinations.stream()
+                .map { p -> p.distSqr(pos) }
+                .min(Comparator { obj, anotherDouble -> obj!!.compareTo(anotherDouble!!) })
+                .orElse(0.0)
+        })
+    }
+
+    fun toVec3(dir: Vec3i): Vec3 {
+        return Vec3(dir.x.toDouble(), dir.y.toDouble(), dir.z.toDouble())
+    }
 
 }

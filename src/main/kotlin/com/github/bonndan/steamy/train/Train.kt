@@ -1,17 +1,19 @@
 package com.github.bonndan.steamy.train
 
 import com.github.bonndan.steamy.locomotive.entity.LocomotiveEntity
+import com.github.bonndan.steamy.train.LinkableCart
+import net.minecraft.world.entity.vehicle.AbstractMinecart
 import java.util.*
 import java.util.function.Consumer
 import java.util.function.Function
 
-class Train(private var head: AbstractTrainCarEntity) {
+class Train<T>(private var head: LinkableCart<T>) where T : AbstractMinecart, T : LinkableCart<T> {
 
     val tug: Optional<LocomotiveEntity> =
         if (head is LocomotiveEntity) Optional.of(head as LocomotiveEntity) else Optional.empty()
-    private var tail: AbstractTrainCarEntity = head
+    private var tail: LinkableCart<T> = head
 
-    fun asListOfTugged(): MutableList<AbstractTrainCarEntity> {
+    fun asListOfTugged(): MutableList<LinkableCart<T>> {
 
         if (this.head.checkNoLoopsDominated()) {
             // just in case - to avoid crashing the world.
@@ -21,17 +23,17 @@ class Train(private var head: AbstractTrainCarEntity) {
         }
 
         return tug.map(Function { tugEntity ->
-            val barges = ArrayList<AbstractTrainCarEntity>()
-            var barge = getNext(tugEntity)
+            val barges = ArrayList<LinkableCart<T>>()
+            var barge = getNext(tugEntity as LinkableCart<T>)
             while (barge.isPresent) {
                 barges.add(barge.get())
                 barge = getNext(barge.get())
             }
             barges
-        }).orElse(ArrayList<AbstractTrainCarEntity>())
+        }).orElse(ArrayList<LinkableCart<T>>())
     }
 
-    fun asList(): MutableList<AbstractTrainCarEntity> {
+    fun asList(): MutableList<LinkableCart<T>> {
         if (this.head.checkNoLoopsDominated()) {
             // just in case - to avoid crashing the world.
             this.head.removeDominated()
@@ -39,8 +41,8 @@ class Train(private var head: AbstractTrainCarEntity) {
             return ArrayList()
         }
 
-        val list: MutableList<AbstractTrainCarEntity> = ArrayList()
-        var barge: Optional<AbstractTrainCarEntity> = Optional.of(head)
+        val list: MutableList<LinkableCart<T>> = ArrayList()
+        var barge = Optional.of(head)
         while (barge.isPresent) {
             list.add(barge.get())
             barge = getNext(barge.get())
@@ -48,23 +50,23 @@ class Train(private var head: AbstractTrainCarEntity) {
         return list
     }
 
-    fun getNext(entity: AbstractTrainCarEntity): Optional<AbstractTrainCarEntity> {
-        return entity.getFollower().map(Function { t: AbstractTrainCarEntity? -> t as AbstractTrainCarEntity })
+    fun getNext(entity: LinkableCart<T>): Optional<LinkableCart<T>> {
+        return entity.getFollower().map({ t -> t as LinkableCart<T> })
     }
 
-    fun setHead(newHead: AbstractTrainCarEntity) {
+    fun setHead(newHead: LinkableCart<T>) {
         this.head = newHead
     }
 
-    fun setTail(newTail: AbstractTrainCarEntity) {
+    fun setTail(newTail: LinkableCart<T>) {
         this.tail = newTail
     }
 
-    fun getHead(): AbstractTrainCarEntity {
+    fun getHead(): LinkableCart<T> {
         return this.head
     }
 
-    fun getTail(): AbstractTrainCarEntity {
+    fun getTail(): LinkableCart<T> {
         return this.tail
     }
 }

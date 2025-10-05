@@ -5,11 +5,16 @@ import com.github.bonndan.steamy.setup.ModItems.CONDUCTORS_WRENCH
 import com.github.bonndan.steamy.setup.ModItems.SPRING
 import com.github.bonndan.steamy.setup.SetThrottlePacket
 import com.github.bonndan.steamy.setup.VehiclePacketHandler.sendToServer
-import com.github.bonndan.steamy.train.AbstractTrainCarEntity
+import com.github.bonndan.steamy.train.LinkableCart
+import com.github.bonndan.steamy.train.LinkableCart.Companion.DOMINANT_ID
+import com.github.bonndan.steamy.train.LinkableCart.Companion.DOMINATED_ID
+import com.github.bonndan.steamy.train.LinkingHandler
+import com.github.bonndan.steamy.train.RailHelper
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
-import net.minecraft.core.particles.ParticleTypes
+import net.minecraft.core.Vec3i
+import net.minecraft.core.component.DataComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.network.syncher.EntityDataAccessor
 import net.minecraft.network.syncher.EntityDataSerializers
@@ -23,66 +28,38 @@ import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.player.Player
+import net.minecraft.world.entity.vehicle.AbstractMinecart
+import net.minecraft.world.entity.vehicle.MinecartFurnace
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
-import net.minecraft.world.item.Items
+import net.minecraft.world.level.GameRules
 import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.Blocks
-import net.minecraft.world.level.block.FurnaceBlock
-import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.RailShape
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
 import net.minecraft.world.phys.Vec3
+import java.util.stream.Stream
+import kotlin.math.abs
+import kotlin.math.sqrt
 
-class LocomotiveEntity(entityType: EntityType<out AbstractTrainCarEntity>, level: Level) :
-    AbstractTrainCarEntity(entityType, level) {
+class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level) :
+    MinecartFurnace(entityType, level), LinkableCart<LocomotiveEntity> {
 
     val FULL_AHEAD = 1.0f
     val ZERO_SPEED = 0f
     val BRAKES = -0.5f
 
-    private var rotationOffset = 0f
-    private var playerRotationOffset = 0f
-    private var fuel = 0
-    var push: Vec3 = DEFAULT_PUSH
+    override val linkingHandler = LinkingHandler(this, DOMINANT_ID, DOMINATED_ID)
 
-    override fun isFurnace(): Boolean {
-        return true
+    override fun getOnPos(): BlockPos {
+        return linkingHandler.getOnPos(this as AbstractMinecart)
     }
 
     override fun defineSynchedData(builder: SynchedEntityData.Builder) {
         super.defineSynchedData(builder)
-        builder.define(DATA_ID_FUEL, false)
         builder.define(DATA_ID_THROTTLE, 0f)
-    }
-
-    override fun tick() {
-        val d0 = this.yRot.toDouble()
-        val vec3 = this.position()
-        super.tick()
-        if (!this.level().isClientSide()) {
-            if (this.fuel > 0) {
-                this.fuel--
-            }
-
-            if (this.fuel <= 0) {
-                this.push = Vec3.ZERO
-            }
-
-            this.setHasFuel(this.fuel > 0)
-        }
-
-        if (this.hasFuel() && this.random.nextInt(4) == 0) {
-            this.level()
-                .addParticle(ParticleTypes.LARGE_SMOKE, this.x, this.y + 0.8, this.z, 0.0, 0.0, 0.0)
-        }
-        val d1 = (this.yRot.toDouble() - d0) % 360.0
-        if (this.level().isClientSide && vec3.distanceTo(this.position()) > 0.01) {
-            this.rotationOffset += d1.toFloat()
-            this.rotationOffset %= 360.0f
-        }
-        this.behavior
+        builder.define(DOMINANT_ID, -1)
+        builder.define(DOMINATED_ID, -1)
     }
 
     override fun getMaxSpeed(serverLevel: ServerLevel): Double {
@@ -94,9 +71,8 @@ class LocomotiveEntity(entityType: EntityType<out AbstractTrainCarEntity>, level
     }
 
     override fun getPickResult(): ItemStack {
-        return ItemStack(Items.FURNACE_MINECART)
+        return ItemStack(ModItems.LOCOMOTIVE.get())
     }
-
 
     private fun calculateNewPushAlong(p_374438_: Vec3): Vec3 {
         return if (this.push.horizontalDistanceSqr() > 1.0E-4 && p_374438_.horizontalDistanceSqr() > 0.001)
@@ -105,35 +81,116 @@ class LocomotiveEntity(entityType: EntityType<out AbstractTrainCarEntity>, level
             this.push
     }
 
+    override fun tick() {
 
-    override fun addAdditionalSaveData(valueOutput: ValueOutput) {
-        super.addAdditionalSaveData(valueOutput)
-        valueOutput.putDouble("PushX", this.push.x)
-        valueOutput.putDouble("PushZ", this.push.z)
-        valueOutput.putShort("Fuel", this.fuel.toShort())
+        super.tick()
+
+        linkingHandler.tickLoad()
+        tickYRot()
+        val yrot = this.yRot
+        super.tick()
+        this.yRot = yrot
+        if (!level().isClientSide) {
+            linkingHandler.doChainMath()
+        }
+
     }
 
-    override fun readAdditionalSaveData(valueInput: ValueInput) {
+    protected override fun readAdditionalSaveData(valueInput: ValueInput) {
         super.readAdditionalSaveData(valueInput)
-        val d0 = valueInput.getDoubleOr("PushX", DEFAULT_PUSH.x)
-        val d1 = valueInput.getDoubleOr("PushZ", DEFAULT_PUSH.z)
-        this.push = Vec3(d0, 0.0, d1)
-        this.fuel = valueInput.getShortOr("Fuel", 0.toShort())
+        linkingHandler.readAdditionalSaveData(valueInput)
     }
 
-    private fun hasFuel(): Boolean {
-        return this.entityData.get(DATA_ID_FUEL) ?: false
+    protected override fun addAdditionalSaveData(valueOutput: ValueOutput) {
+        super.addAdditionalSaveData(valueOutput)
+        linkingHandler.addAdditionalSaveData(valueOutput)
     }
 
-    private fun setHasFuel(fuel: Boolean) {
-        this.entityData.set(DATA_ID_FUEL, fuel)
+    override fun onSyncedDataUpdated(key: EntityDataAccessor<*>) {
+        super.onSyncedDataUpdated(key)
+        linkingHandler.onSyncedDataUpdated(key)
     }
 
-    override fun getDefaultDisplayBlockState(): BlockState =
-        Blocks.FURNACE.defaultBlockState()
-            .setValue(FurnaceBlock.FACING, Direction.NORTH)
-            .setValue(FurnaceBlock.LIT, this.hasFuel())
+    // force render since we delegate rendering to the head of the train
+    override fun shouldRender(pX: Double, pY: Double, pZ: Double): Boolean {
+        return true
+    }
 
+    override fun getMotionDirection(): Direction {
+        return Direction.fromYRot((this.yRot).toDouble())
+    }
+
+
+    //todo refactor out to linkinghandler
+    fun tickYRot() {
+        this.yRot = computeYaw()
+    }
+
+    protected fun enforceMaxVelocity(maxSpeed: Double) {
+        var vel: Vec3 = this.deltaMovement
+        val normal: Vec3 = vel.normalize()
+        if (abs(vel.x) > maxSpeed) {
+            this.setDeltaMovement(normal.x * maxSpeed, vel.y, vel.z)
+            vel = this.deltaMovement
+        }
+        if (abs(vel.z) > maxSpeed) {
+            this.setDeltaMovement(vel.x, vel.y, normal.z * maxSpeed)
+        }
+    }
+
+    fun computeYaw(): Float {
+        val yrot = this.yRot
+        // if the car is part of a train, enforce that direction instead
+        val railShape = linkingHandler.getRailShape()
+        if (linkingHandler.follower.isPresent && railShape.isPresent) {
+            val r = RailHelper.traverseBi(
+                this,
+                this.onPos.above(),
+                RailHelper.samePositionPredicate(linkingHandler.follower.get() as AbstractMinecart),
+                5,
+                this
+            )
+            if (r.isPresent) {
+                val yaw =
+                    linkingHandler.yawHelper(r.get(), this as AbstractMinecart, linkingHandler.follower.get() as Entity)
+                val directionOpt = RailHelper.getDirectionToOtherExit(yaw, railShape.get())
+                if (directionOpt.isPresent) {
+                    val direction: Vec3i = directionOpt.get()
+                    return ((Mth.atan2(
+                        direction.z.toDouble(),
+                        direction.x.toDouble()
+                    ) * 180.0 / Math.PI).toFloat() + 90)
+                }
+            }
+        } else if (linkingHandler.leader.isPresent && railShape.isPresent) {
+            val r = RailHelper.traverseBi(
+                this,
+                this.onPos.above(),
+                RailHelper.samePositionPredicate(linkingHandler.leader.get() as AbstractMinecart),
+                5,
+                this
+            )
+            if (r.isPresent) {
+                val hordir = linkingHandler.yawHelper(r.get(), this, linkingHandler.leader.get() as AbstractMinecart)
+                val directionOpt = RailHelper.getDirectionToOtherExit(hordir, railShape.get())
+                if (directionOpt.isPresent) {
+                    val direction: Vec3i = directionOpt.get()
+                    return ((Mth.atan2(
+                        -direction.z.toDouble(),
+                        -direction.x.toDouble()
+                    ) * 180.0 / Math.PI).toFloat() + 90)
+                }
+            }
+        } else {
+            val d1 = this.xo - this.x
+            val d3 = this.zo - this.z
+            if (d1 * d1 + d3 * d3 > 0.001) {
+                return ((Mth.atan2(d3, d1) * 180.0 / Math.PI).toFloat() + 90)
+            }
+        }
+
+        return yrot
+    }
 
     override fun interact(player: Player, hand: InteractionHand): InteractionResult {
 
@@ -148,7 +205,7 @@ class LocomotiveEntity(entityType: EntityType<out AbstractTrainCarEntity>, level
         val isClientSideOrStartRiding = this.level().isClientSide || (!usesTrainTool && player.startRiding(this))
 
         if (isNotSecondary && isNotVehicle && !usesTrainTool && isClientSideOrStartRiding) {
-            this.playerRotationOffset = this.rotationOffset
+            // TODO this.playerRotationOffset = this.rotationOffset
             if (!this.level().isClientSide) {
                 return (if (player.startRiding(this)) InteractionResult.CONSUME else InteractionResult.PASS) as InteractionResult
             } else {
@@ -162,22 +219,6 @@ class LocomotiveEntity(entityType: EntityType<out AbstractTrainCarEntity>, level
     private fun getUsesTrainTool(itemStack: ItemStack): Boolean =
         itemStack.`is`(CONDUCTORS_WRENCH) || itemStack.`is`(SPRING)
 
-    private fun superInteract(p_38562_: Player, p_38563_: InteractionHand): InteractionResult {
-        val ret = super.interact(p_38562_, p_38563_)
-        if (ret.consumesAction()) return ret
-        val itemstack = p_38562_.getItemInHand(p_38563_)
-        if (itemstack.`is`(ItemTags.FURNACE_MINECART_FUEL) && this.fuel + FUEL_TICKS_PER_ITEM <= MAX_FUEL_TICKS) {
-            itemstack.consume(1, p_38562_)
-            this.fuel += 3600
-        }
-
-        if (this.fuel > 0) {
-            this.push = this.position().subtract(p_38562_.position()).horizontal()
-        }
-
-        return InteractionResult.SUCCESS
-    }
-
 
     /**
      * Interaction with the furnace minecart but without the push change.
@@ -188,7 +229,7 @@ class LocomotiveEntity(entityType: EntityType<out AbstractTrainCarEntity>, level
     ): InteractionResult {
 
         val push = Vec3(this.push.x, this.push.y, this.push.z)
-        val ret = superInteract(player, hand)
+        val ret = super.interact(player, hand)
 
         //undo the push change from super.interact
         this.push = push
@@ -206,19 +247,6 @@ class LocomotiveEntity(entityType: EntityType<out AbstractTrainCarEntity>, level
         return true
     }
 
-
-    override fun positionRider(passenger: Entity, callback: MoveFunction) {
-        super.positionRider(passenger, callback)
-        if (this.level().isClientSide && passenger is Player && passenger.shouldRotateWithMinecart() && useExperimentalMovement(
-                this.level()
-            )
-        ) {
-            val f = Mth.rotLerp(0.5, this.playerRotationOffset.toDouble(), this.rotationOffset.toDouble()).toFloat()
-            passenger.yRot = passenger.yRot - (f - this.playerRotationOffset)
-            this.playerRotationOffset = f
-        }
-    }
-
     /**
      * Speed is doubled if the player is giving movement input (WASD).
      */
@@ -233,6 +261,33 @@ class LocomotiveEntity(entityType: EntityType<out AbstractTrainCarEntity>, level
             }
         }
         return super.makeStepAlongTrack(pos, railShape, speed * speedFactor)
+    }
+
+    override fun remove(r: RemovalReason) {
+        linkingHandler.handleLinkableKill()
+        super.remove(r)
+    }
+
+    override fun destroy(serverLevel: ServerLevel, item: Item) {
+
+        super.destroy(serverLevel, item)
+
+        this.remove(RemovalReason.KILLED)
+        if (serverLevel.gameRules.getBoolean(GameRules.RULE_DOENTITYDROPS)) {
+            val stack: ItemStack = this.pickResult
+            if (this.hasCustomName()) {
+                stack.set(DataComponents.ITEM_NAME, this.customName)
+            }
+
+            val chains = Stream.of(linkingHandler.leader, linkingHandler.follower)
+                .filter { obj -> obj.isPresent }
+                .count()
+                .toInt()
+            this.spawnAtLocation(serverLevel, stack)
+            for (j in 0..<chains) {
+                spawnChain()
+            }
+        }
     }
 
     fun superApplyNaturalSlowdown(p_363865_: Vec3): Vec3 {
@@ -324,16 +379,80 @@ class LocomotiveEntity(entityType: EntityType<out AbstractTrainCarEntity>, level
         this.entityData.set(DATA_ID_THROTTLE, throttle)
     }
 
+    override fun push(pEntity: Entity) {
+        if (!this.level().isClientSide) {
+
+            if (!pEntity.noPhysics && !this.noPhysics) {
+                // fix carts with passengers falling behind
+                if (!this.hasPassenger(pEntity) || this.getLeader().isPresent) {
+                    var d0 = pEntity.x - this.x
+                    var d1 = pEntity.z - this.z
+                    var d2 = d0 * d0 + d1 * d1
+                    if (d2 >= 1.0E-4) {
+                        d2 = sqrt(d2)
+                        d0 /= d2
+                        d1 /= d2
+                        var d3 = 1.0 / d2
+                        if (d3 > 1.0) {
+                            d3 = 1.0
+                        }
+
+                        d0 *= d3
+                        d1 *= d3
+                        d0 *= 0.1
+                        d1 *= 0.1
+                        d0 *= 0.5
+                        d1 *= 0.5
+                        if (pEntity is AbstractMinecart) {
+                            val d4 = pEntity.x - this.x
+                            val d5 = pEntity.z - this.z
+                            val vec3: Vec3 = (Vec3(d4, 0.0, d5)).normalize()
+                            val vec31: Vec3 = (Vec3(
+                                Mth.cos(this.yRot * (Math.PI.toFloat() / 180f)).toDouble(),
+                                0.0,
+                                Mth.sin(this.yRot * (Math.PI.toFloat() / 180f)).toDouble()
+                            )).normalize()
+                            val d6: Double = abs(vec3.dot(vec31))
+                            if (d6 < 0.8) {
+                                return
+                            }
+
+                            val vec32: Vec3 = this.deltaMovement
+                            val vec33: Vec3 = pEntity.deltaMovement
+
+                            if (isPoweredCart(pEntity) && !isPoweredCart(this)) {
+                                this.deltaMovement = vec32.multiply(0.2, 1.0, 0.2)
+                                this.push(vec33.x - d0, 0.0, vec33.z - d1)
+                                pEntity.deltaMovement = vec33.multiply(0.95, 1.0, 0.95)
+                            } else if (!isPoweredCart(pEntity) && isPoweredCart(this)) {
+                                pEntity.deltaMovement = vec33.multiply(0.2, 1.0, 0.2)
+                                pEntity.push(vec32.x + d0, 0.0, vec32.z + d1)
+                                this.deltaMovement = vec32.multiply(0.95, 1.0, 0.95)
+                            } else {
+                                val d7: Double = (vec33.x + vec32.x) / 2.0
+                                val d8: Double = (vec33.z + vec32.z) / 2.0
+                                this.deltaMovement = vec32.multiply(0.2, 1.0, 0.2)
+                                this.push(d7 - d0, 0.0, d8 - d1)
+                                pEntity.deltaMovement = vec33.multiply(0.2, 1.0, 0.2)
+                                pEntity.push(d7 + d0, 0.0, d8 + d1)
+                            }
+                        } else {
+                            this.push(-d0, 0.0, -d1)
+                            pEntity.push(d0 / 4.0, 0.0, d1 / 4.0)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun isPoweredCart(entity: AbstractMinecart): Boolean {
+        return entity is LocomotiveEntity || entity is MinecartFurnace
+    }
+
     companion object {
         val DATA_ID_THROTTLE: EntityDataAccessor<Float> =
             SynchedEntityData.defineId(LocomotiveEntity::class.java, EntityDataSerializers.FLOAT)
-
-        val DATA_ID_FUEL: EntityDataAccessor<Boolean> =
-            SynchedEntityData.defineId(LocomotiveEntity::class.java, EntityDataSerializers.BOOLEAN)
-        const val FUEL_TICKS_PER_ITEM: Int = 3600
-        const val MAX_FUEL_TICKS: Int = 32000
-        const val DEFAULT_FUEL: Short = 0
-        val DEFAULT_PUSH: Vec3 = Vec3.ZERO
     }
 
 }

@@ -54,7 +54,7 @@ class SpringItem(properties: Properties) : Item(properties) {
 
         if (dominant === target) {
             player.displayClientMessage(Component.translatable("item.steamy.spring.notToSelf"), true)
-        } else if (dominant is AbstractTrainCarEntity) {
+        } else if (dominant is LinkableCart<*>) {
             if (dominant.linkEntities(player, target) && !player.isCreative) {
                 stack.shrink(1)
             }

@@ -1,7 +1,7 @@
 package com.github.bonndan.steamy.rendering
 
 import com.github.bonndan.steamy.SteamyMod.Companion.MOD_ID
-import com.github.bonndan.steamy.train.AbstractTrainCarEntity
+import com.github.bonndan.steamy.train.LinkableCart
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.Minecraft
@@ -15,23 +15,26 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.util.Mth
+import net.minecraft.world.entity.vehicle.AbstractMinecart
 import net.minecraft.world.phys.Vec3
 import java.util.function.Function
 
-open class TrainCarRenderer(
+open class TrainCarRenderer<T>(
     context: EntityRendererProvider.Context,
-    baseModel: Function<ModelPart, EntityModel<TrainCarRenderState>>,
+    baseModel: Function<ModelPart, EntityModel<TrainCarRenderState<T>>>,
     layerLocation: ModelLayerLocation,
     baseTexture: ResourceLocation?
-) : AbstractMinecartRenderer<AbstractTrainCarEntity, TrainCarRenderState>(context, layerLocation), RenderWithAttachmentPoints {
+) : AbstractMinecartRenderer<T, TrainCarRenderState<T>>(context, layerLocation),
+    RenderWithAttachmentPoints<T> where T : AbstractMinecart, T : LinkableCart<T> {
 
-    private val entityModel: EntityModel<TrainCarRenderState> = baseModel.apply(context.bakeLayer(layerLocation))
-    private val texture: ResourceLocation = baseTexture ?: ResourceLocation.withDefaultNamespace("textures/entity/minecart.png")
+    private val entityModel: EntityModel<TrainCarRenderState<T>> = baseModel.apply(context.bakeLayer(layerLocation))
+    private val texture: ResourceLocation =
+        baseTexture ?: ResourceLocation.withDefaultNamespace("textures/entity/minecart.png")
 
     private val chainModel: ChainModel = ChainModel(context.bakeLayer(ChainModel.LAYER_LOCATION))
 
     override fun render(
-        renderState: TrainCarRenderState,
+        renderState: TrainCarRenderState<T>,
         poseStack: PoseStack,
         bufferSource: MultiBufferSource,
         packedLight: Int,
@@ -49,7 +52,7 @@ open class TrainCarRenderer(
     }
 
     fun render(
-        car: AbstractTrainCarEntity,
+        car: LinkableCart<T>,
         yaw: Float,
         pPartialTicks: Float,
         pose: PoseStack,
@@ -61,17 +64,18 @@ open class TrainCarRenderer(
         pose.pushPose()
 
         // render
-        var t: AbstractTrainCarEntity = car
+        var t: LinkableCart<T> = car
         var attachmentPoints = renderCarAndGetAttachmentPoints(car, yaw, pPartialTicks, pose, buffer, pPackedLight)
 
         while (t.getFollower().isPresent) {
-            val nextT: AbstractTrainCarEntity = t.getFollower().get()
-            val renderer = Minecraft.getInstance().entityRenderDispatcher.getRenderer(nextT)
-            if (renderer is RenderWithAttachmentPoints) {
+            val nextT = t.getFollower().get()
+            val renderer = Minecraft.getInstance().entityRenderDispatcher.getRenderer(nextT as AbstractMinecart)
+            if (renderer is RenderWithAttachmentPoints<*>) {
 
+                renderer as RenderWithAttachmentPoints<T>
                 // translate to next train location
                 val nextTPos: Vec3 = nextT.getPosition(pPartialTicks)
-                val tPos: Vec3 = t.getPosition(pPartialTicks)
+                val tPos: Vec3 = (t as AbstractMinecart).getPosition(pPartialTicks)
                 var offset: Vec3 = nextTPos.subtract(tPos)
                 pose.translate(offset.x, offset.y, offset.z)
                 val newAttachmentPoints: Pair<Vec3, Vec3> = renderer.renderCarAndGetAttachmentPoints(
@@ -146,7 +150,7 @@ open class TrainCarRenderer(
     }
 
     override fun shouldRender(
-        entity: AbstractTrainCarEntity,
+        entity: T,
         pCamera: Frustum,
         pCamX: Double,
         pCamY: Double,
@@ -155,17 +159,21 @@ open class TrainCarRenderer(
         return true
     }
 
-    override fun createRenderState(): TrainCarRenderState {
+    override fun createRenderState(): TrainCarRenderState<T> {
         return TrainCarRenderState()
     }
 
-    override fun extractRenderState(entity: AbstractTrainCarEntity, renderState: TrainCarRenderState, partialTick: Float) {
+    override fun extractRenderState(
+        entity: T,
+        renderState: TrainCarRenderState<T>,
+        partialTick: Float
+    ) {
         super.extractRenderState(entity, renderState, partialTick)
         renderState.updateFromEntity(entity, partialTick)
     }
 
     override fun renderCarAndGetAttachmentPoints(
-        car: AbstractTrainCarEntity,
+        entity: LinkableCart<T>,
         yaw: Float,
         partialTicks: Float,
         pose: PoseStack?,
@@ -174,6 +182,7 @@ open class TrainCarRenderer(
     ): Pair<Vec3, Vec3> {
 
         var yaw = yaw
+        val car = entity as AbstractMinecart
         var attach = Pair(
             car.getPosition(partialTicks).add(0.0, .44, 0.0),
             car.getPosition(partialTicks).add(0.0, .44, 0.0)
@@ -191,11 +200,11 @@ open class TrainCarRenderer(
         val d0: Double = Mth.lerp(partialTicks.toDouble(), car.xOld, car.x)
         val d1: Double = Mth.lerp(partialTicks.toDouble(), car.yOld, car.y)
         val d2: Double = Mth.lerp(partialTicks.toDouble(), car.zOld, car.z)
-        val pos: Vec3? = car.getPos(d0, d1, d2)
+        val pos: Vec3? = entity.getPos(d0, d1, d2)
         var pitch: Float = Mth.lerp(partialTicks, car.xRotO, car.xRot)
         if (pos != null) {
-            var forwardDir = car.getPosOffs(d0, d1, d2, 0.3)
-            var backDir: Vec3? = car.getPosOffs(d0, d1, d2, -0.3)
+            var forwardDir = entity.getPosOffs(d0, d1, d2, 0.3)
+            var backDir: Vec3? = entity.getPosOffs(d0, d1, d2, -0.3)
             if (forwardDir == null) {
                 forwardDir = pos
             }
@@ -238,8 +247,8 @@ open class TrainCarRenderer(
         pose.scale(-1.0f, -1.0f, 1.0f)
 
         // Create a render state for the model
-        val renderState = TrainCarRenderState()
-        renderState.updateFromEntity(car, partialTicks)
+        val renderState = TrainCarRenderState<T>()
+        renderState.updateFromEntity(entity, partialTicks)
 
         this.entityModel.setupAnim(renderState)
         val vertexconsumer: VertexConsumer = buffer.getBuffer(this.entityModel.renderType(texture))
@@ -249,7 +258,7 @@ open class TrainCarRenderer(
             packedLight,
             OverlayTexture.NO_OVERLAY
         )
-        renderAdditional(car, yaw, partialTicks, pose, buffer, packedLight)
+        renderAdditional(entity, yaw, partialTicks, pose, buffer, packedLight)
         pose.popPose()
 
         if (car.hasCustomName()) {
@@ -262,7 +271,7 @@ open class TrainCarRenderer(
     }
 
     protected fun renderAdditional(
-        pEntity: AbstractTrainCarEntity?,
+        pEntity: LinkableCart<T>?,
         pEntityYaw: Float,
         pPartialTicks: Float,
         pMatrixStack: PoseStack?,

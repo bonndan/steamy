@@ -1,7 +1,7 @@
 package com.github.bonndan.steamy.setup
 
 import com.github.bonndan.steamy.SteamyMod
-import com.github.bonndan.steamy.train.AbstractTrainCarEntity
+import com.github.bonndan.steamy.train.LinkableCart
 import com.github.bonndan.steamy.train.SpringItem
 import net.minecraft.client.model.geom.ModelLayerLocation
 import net.minecraft.client.renderer.entity.EntityRendererProvider
@@ -44,7 +44,7 @@ object ModClientEventHandler {
 
         val item = event.itemStack.item
         if (item is SpringItem) {
-            if (event.target is AbstractTrainCarEntity) {
+            if (event.target is LinkableCart<*>) {
                 item.onUsedOnEntity(event.itemStack, event.entity, event.level, event.target)
                 event.setCanceled(true)
                 event.cancellationResult = SUCCESS
@@ -53,7 +53,7 @@ object ModClientEventHandler {
 
         if (item is ShearsItem) {
             val target = event.target
-            if (target is AbstractTrainCarEntity) {
+            if (target is LinkableCart<*>) {
                 target.handleShearsCut()
                 event.setCanceled(true)
                 event.cancellationResult = SUCCESS
