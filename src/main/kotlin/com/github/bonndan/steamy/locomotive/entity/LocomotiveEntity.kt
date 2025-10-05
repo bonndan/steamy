@@ -95,7 +95,7 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
         super.tick()
 
         linkingHandler.tickLoad()
-        tickYRot()
+        this.yRot = computeYaw()
         val yrot = this.yRot
         super.tick()
         this.yRot = yrot
@@ -129,23 +129,6 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
         return Direction.fromYRot((this.yRot).toDouble())
     }
 
-
-    //todo refactor out to linkinghandler
-    fun tickYRot() {
-        this.yRot = computeYaw()
-    }
-
-    protected fun enforceMaxVelocity(maxSpeed: Double) {
-        var vel: Vec3 = this.deltaMovement
-        val normal: Vec3 = vel.normalize()
-        if (abs(vel.x) > maxSpeed) {
-            this.setDeltaMovement(normal.x * maxSpeed, vel.y, vel.z)
-            vel = this.deltaMovement
-        }
-        if (abs(vel.z) > maxSpeed) {
-            this.setDeltaMovement(vel.x, vel.y, normal.z * maxSpeed)
-        }
-    }
 
     fun computeYaw(): Float {
         val yrot = this.yRot
@@ -389,66 +372,63 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
     }
 
     override fun push(pEntity: Entity) {
-        if (!this.level().isClientSide) {
+        if (!this.level().isClientSide && !pEntity.noPhysics && !this.noPhysics) {
+            // fix carts with passengers falling behind
+            if (!this.hasPassenger(pEntity) || this.getLeader().isPresent) {
+                var d0 = pEntity.x - this.x
+                var d1 = pEntity.z - this.z
+                var d2 = d0 * d0 + d1 * d1
+                if (d2 >= 1.0E-4) {
+                    d2 = sqrt(d2)
+                    d0 /= d2
+                    d1 /= d2
+                    var d3 = 1.0 / d2
+                    if (d3 > 1.0) {
+                        d3 = 1.0
+                    }
 
-            if (!pEntity.noPhysics && !this.noPhysics) {
-                // fix carts with passengers falling behind
-                if (!this.hasPassenger(pEntity) || this.getLeader().isPresent) {
-                    var d0 = pEntity.x - this.x
-                    var d1 = pEntity.z - this.z
-                    var d2 = d0 * d0 + d1 * d1
-                    if (d2 >= 1.0E-4) {
-                        d2 = sqrt(d2)
-                        d0 /= d2
-                        d1 /= d2
-                        var d3 = 1.0 / d2
-                        if (d3 > 1.0) {
-                            d3 = 1.0
+                    d0 *= d3
+                    d1 *= d3
+                    d0 *= 0.1
+                    d1 *= 0.1
+                    d0 *= 0.5
+                    d1 *= 0.5
+                    if (pEntity is AbstractMinecart) {
+                        val d4 = pEntity.x - this.x
+                        val d5 = pEntity.z - this.z
+                        val vec3: Vec3 = (Vec3(d4, 0.0, d5)).normalize()
+                        val vec31: Vec3 = (Vec3(
+                            Mth.cos(this.yRot * (Math.PI.toFloat() / 180f)).toDouble(),
+                            0.0,
+                            Mth.sin(this.yRot * (Math.PI.toFloat() / 180f)).toDouble()
+                        )).normalize()
+                        val d6: Double = abs(vec3.dot(vec31))
+                        if (d6 < 0.8) {
+                            return
                         }
 
-                        d0 *= d3
-                        d1 *= d3
-                        d0 *= 0.1
-                        d1 *= 0.1
-                        d0 *= 0.5
-                        d1 *= 0.5
-                        if (pEntity is AbstractMinecart) {
-                            val d4 = pEntity.x - this.x
-                            val d5 = pEntity.z - this.z
-                            val vec3: Vec3 = (Vec3(d4, 0.0, d5)).normalize()
-                            val vec31: Vec3 = (Vec3(
-                                Mth.cos(this.yRot * (Math.PI.toFloat() / 180f)).toDouble(),
-                                0.0,
-                                Mth.sin(this.yRot * (Math.PI.toFloat() / 180f)).toDouble()
-                            )).normalize()
-                            val d6: Double = abs(vec3.dot(vec31))
-                            if (d6 < 0.8) {
-                                return
-                            }
+                        val vec32: Vec3 = this.deltaMovement
+                        val vec33: Vec3 = pEntity.deltaMovement
 
-                            val vec32: Vec3 = this.deltaMovement
-                            val vec33: Vec3 = pEntity.deltaMovement
-
-                            if (isPoweredCart(pEntity) && !isPoweredCart(this)) {
-                                this.deltaMovement = vec32.multiply(0.2, 1.0, 0.2)
-                                this.push(vec33.x - d0, 0.0, vec33.z - d1)
-                                pEntity.deltaMovement = vec33.multiply(0.95, 1.0, 0.95)
-                            } else if (!isPoweredCart(pEntity) && isPoweredCart(this)) {
-                                pEntity.deltaMovement = vec33.multiply(0.2, 1.0, 0.2)
-                                pEntity.push(vec32.x + d0, 0.0, vec32.z + d1)
-                                this.deltaMovement = vec32.multiply(0.95, 1.0, 0.95)
-                            } else {
-                                val d7: Double = (vec33.x + vec32.x) / 2.0
-                                val d8: Double = (vec33.z + vec32.z) / 2.0
-                                this.deltaMovement = vec32.multiply(0.2, 1.0, 0.2)
-                                this.push(d7 - d0, 0.0, d8 - d1)
-                                pEntity.deltaMovement = vec33.multiply(0.2, 1.0, 0.2)
-                                pEntity.push(d7 + d0, 0.0, d8 + d1)
-                            }
+                        if (isPoweredCart(pEntity) && !isPoweredCart(this)) {
+                            this.deltaMovement = vec32.multiply(0.2, 1.0, 0.2)
+                            this.push(vec33.x - d0, 0.0, vec33.z - d1)
+                            pEntity.deltaMovement = vec33.multiply(0.95, 1.0, 0.95)
+                        } else if (!isPoweredCart(pEntity) && isPoweredCart(this)) {
+                            pEntity.deltaMovement = vec33.multiply(0.2, 1.0, 0.2)
+                            pEntity.push(vec32.x + d0, 0.0, vec32.z + d1)
+                            this.deltaMovement = vec32.multiply(0.95, 1.0, 0.95)
                         } else {
-                            this.push(-d0, 0.0, -d1)
-                            pEntity.push(d0 / 4.0, 0.0, d1 / 4.0)
+                            val d7: Double = (vec33.x + vec32.x) / 2.0
+                            val d8: Double = (vec33.z + vec32.z) / 2.0
+                            this.deltaMovement = vec32.multiply(0.2, 1.0, 0.2)
+                            this.push(d7 - d0, 0.0, d8 - d1)
+                            pEntity.deltaMovement = vec33.multiply(0.2, 1.0, 0.2)
+                            pEntity.push(d7 + d0, 0.0, d8 + d1)
                         }
+                    } else {
+                        this.push(-d0, 0.0, -d1)
+                        pEntity.push(d0 / 4.0, 0.0, d1 / 4.0)
                     }
                 }
             }
