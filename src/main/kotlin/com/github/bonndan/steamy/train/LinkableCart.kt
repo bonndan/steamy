@@ -1,7 +1,7 @@
 package com.github.bonndan.steamy.train
 
-import com.github.bonndan.steamy.wagons.entity.LocomotiveEntity
 import com.github.bonndan.steamy.setup.ModItems
+import com.github.bonndan.steamy.wagons.entity.LocomotiveEntity
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Vec3i
 import net.minecraft.network.chat.Component
@@ -9,7 +9,6 @@ import net.minecraft.network.syncher.EntityDataAccessor
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.tags.BlockTags
 import net.minecraft.util.Mth
-import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.entity.vehicle.AbstractMinecart
 import net.minecraft.world.entity.vehicle.AbstractMinecart.exits
@@ -21,7 +20,6 @@ import net.minecraft.world.phys.Vec3
 import java.util.*
 import java.util.function.Consumer
 import java.util.function.Function
-import java.util.function.Predicate
 import java.util.stream.Stream
 import kotlin.math.cos
 import kotlin.math.sin
@@ -133,33 +131,32 @@ interface LinkableCart<T> where T : AbstractMinecart, T : LinkableCart<T> {
         minecart.spawnAtLocation(minecart.level() as ServerLevel, stack)
     }
 
-    fun linkEntities(player: Player, target: Entity): Boolean {
-        if (target is LinkableCart<*>) {
-            target as LinkableCart<T>
-            val train1 = target.getTrain()
-            val train2 = this.getTrain()
-            if (train2.tug.isPresent && train1.tug.isPresent) {
-                player.displayClientMessage(Component.translatable("item.steamy.spring.noTwoLoco"), true)
-                return false
-            } else if (train2.equals(train1)) {
-                player.displayClientMessage(Component.translatable("item.steamy.spring.noLoops"), true)
-                return false
-            } else {
-                tryFindAndPrepareClosePair(train1, train2)
-                    .ifPresentOrElse(Consumer { pair ->
-                        createLinks(pair.first, pair.second)
-                    }, Runnable {
-                        player.displayClientMessage(
-                            Component.translatable("item.steamy.spring.tooFar"), true
-                        )
-                    })
-            }
+    fun linkEntities(player: Player, target: LinkableCart<*>): Boolean {
 
-            return true
-        } else {
-            player.displayClientMessage(Component.translatable("item.steamy.spring.badTypes"), true)
+        target as LinkableCart<T>
+        val train1 = target.getTrain()
+        val train2 = this.getTrain()
+
+        if (train1.tug.isPresent && train2.tug.isPresent) {
+            player.displayClientMessage(Component.translatable("item.steamy.spring.noTwoLoco"), true)
             return false
         }
+
+        if (train2 == train1) {
+            player.displayClientMessage(Component.translatable("item.steamy.spring.noLoops"), true)
+            return false
+        }
+
+        val pair = tryFindAndPrepareClosePair(train1, train2)
+        if (pair == null) {
+            player.displayClientMessage(Component.translatable("item.steamy.spring.tooFar"), true)
+        } else {
+            createLinks(pair.first, pair.second)
+        }
+
+
+        return true
+
     }
 
     private fun createLinks(dominant: LinkableCart<T>, dominated: LinkableCart<T>) {
@@ -170,80 +167,90 @@ interface LinkableCart<T> where T : AbstractMinecart, T : LinkableCart<T> {
     private fun tryFindAndPrepareClosePair(
         train1: Train<T>,
         train2: Train<T>
-    ): Optional<Pair<LinkableCart<T>, LinkableCart<T>>> {
-        return findClosestPair(train1, train2)
-            .flatMap(Function { targetPair ->
-                if (targetPair.first == train1.getHead() && targetPair.second == train2.getHead()) {
-                    // if trying to attach to head loco then loco is solo
-                    if (train1.tug.isPresent) {
-                        Optional.of(targetPair)
-                    } else {
-                        invertTrain(train2)
-                        Optional.of(swap(targetPair))
-                    }
-                } else if (targetPair.first == train1.getHead() && targetPair.second == train2.getTail()) {
-                    Optional.of(caseTailHead(train2, train1, swap(targetPair)))
-                } else if (targetPair.first == train1.getTail() && targetPair.second == train2.getHead()) {
-                    Optional.of(caseTailHead(train1, train2, targetPair))
-                } else if (targetPair.first == train1.getTail() && targetPair.second == train2.getTail()) {
-                    if (train2.tug.isPresent) {
-                        invertTrain(train1)
-                        Optional.of(swap(targetPair))
-                    } else {
-                        invertTrain(train2)
-                        Optional.of(targetPair)
-                    }
-                }
-                Optional.empty()
-            })
+    ): Pair<LinkableCart<T>, LinkableCart<T>>? {
+
+        val closest = findClosestPair(train1, train2) ?: return null
+
+        if (closest.first == train1.getHead() && closest.second == train2.getHead()) {
+            // if trying to attach to head loco then loco is solo
+            if (train1.tug.isPresent) {
+                return closest
+            } else {
+                invertTrain(train2)
+                return swap(closest)
+            }
+        } else if (closest.first == train1.getHead() && closest.second == train2.getTail()) {
+            return (caseTailHead(train2, train1, swap(closest)))
+        } else if (closest.first == train1.getTail() && closest.second == train2.getHead()) {
+            Optional.of(caseTailHead(train1, train2, closest))
+        } else if (closest.first == train1.getTail() && closest.second == train2.getTail()) {
+            if (train2.tug.isPresent) {
+                invertTrain(train1)
+                Optional.of(swap(closest))
+            } else {
+                invertTrain(train2)
+                Optional.of(closest)
+            }
+        }
+
+        return null
     }
 
 
     private fun findClosestPair(
         train1: Train<T>,
         train2: Train<T>
-    ): Optional<Pair<LinkableCart<T>, LinkableCart<T>>> {
+    ): Pair<LinkableCart<T>, LinkableCart<T>>? {
 
         var mindistance = Int.MAX_VALUE
-        var curr: Optional<Pair<LinkableCart<T>, LinkableCart<T>>> = Optional.empty()
+        var pair: Pair<LinkableCart<T>, LinkableCart<T>>? = null
         val pairs = listOf(
             Pair(train1.getHead(), train2.getTail()),
             Pair(train1.getTail(), train2.getHead()),
             Pair(train1.getTail(), train2.getTail()),
             Pair(train1.getHead(), train2.getHead())
         )
-        for (pair in pairs) {
-            val d = distHelper(pair.first, pair.second)
+        for (combination in pairs) {
+            val d = distHelper(combination.first as AbstractMinecart, combination.second as AbstractMinecart)
             if (d.isPresent && d.get() < mindistance) {
                 mindistance = d.get()
-                curr = Optional.of(pair)
+                pair = combination
             }
         }
 
-        return curr.filter(Predicate { pair ->
-            (pair.first !is LocomotiveEntity || pair.first.getFollower().isEmpty)
-                    && (pair.second !is LocomotiveEntity || pair.second.getFollower().isEmpty)
-        })
+        if (pair == null) {
+            return null
+        }
+
+        return if (isNonLocoOrNotFollowed(pair.first) && isNonLocoOrNotFollowed(pair.second)) {
+            return pair
+        } else {
+            null
+        }
     }
 
-    private fun distHelper(car1: LinkableCart<T>, car2: LinkableCart<T>): Optional<Int> {
+    private fun isNonLocoOrNotFollowed(first: LinkableCart<T>): Boolean {
+        return first !is LocomotiveEntity || first.getFollower().isEmpty
+    }
 
-        car2 as AbstractMinecart
+    private fun distHelper(car1: AbstractMinecart, car2: AbstractMinecart): Optional<Int> {
+
         return RailHelper.traverseBi(
-            car1 as AbstractMinecart,
+            car1,
             car1.onPos.above(),
-            { l, p ->
-                RailHelper.getRail(car2.onPos.above(), car2.level())
-                    .map({ rp -> rp.equals(p) }).orElse(false)
-            }, 5, car1
+            { direction, blockPos ->
+                RailHelper.getRail(car2.onPos.above(), car2.level()).map({ rp -> rp.equals(blockPos) }).orElse(false)
+            },
+            5,
+            car2
         ).map({ obj -> obj.second })
     }
 
     private fun caseTailHead(
         trainTail: Train<T>,
         trainHead: Train<T>,
-        targetPair: Pair<LinkableCart<*>, LinkableCart<*>>
-    ): Pair<LinkableCart<*>, LinkableCart<*>> {
+        targetPair: Pair<LinkableCart<T>, LinkableCart<T>>
+    ): Pair<LinkableCart<T>, LinkableCart<T>> {
         if (trainHead.tug.isPresent) {
             invertTrain(trainHead)
             invertTrain(trainTail)

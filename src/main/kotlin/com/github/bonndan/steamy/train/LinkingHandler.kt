@@ -216,16 +216,16 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
         // if the car is part of a train, enforce that direction instead
         val railShape = getRailShape()
         if (follower.isPresent && railShape.isPresent) {
-            val r = RailHelper.traverseBi(
+            val pair = RailHelper.traverseBi(
                 entity,
                 entity.onPos.above(),
                 RailHelper.samePositionPredicate(follower.get() as AbstractMinecart),
                 5,
                 entity
             )
-            if (r.isPresent) {
+            if (pair.isPresent) {
                 val yaw =
-                    yawHelper(r.get(), this as AbstractMinecart, follower.get() as Entity)
+                    yawHelper(pair.get(), entity as AbstractMinecart, follower.get() as Entity)
                 val directionOpt = RailHelper.getDirectionToOtherExit(yaw, railShape.get())
                 if (directionOpt.isPresent) {
                     val direction: Vec3i = directionOpt.get()

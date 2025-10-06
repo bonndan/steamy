@@ -37,6 +37,7 @@ object Registration {
         ModBlocks.register(BLOCKS)
         ModItems.register(ITEMS)
         ModEntityTypes.register()
+        ModDataComponents.register(eventBus)
         eventBus.register(VehiclePacketHandler)
         ModSounds.register(eventBus)
     }
