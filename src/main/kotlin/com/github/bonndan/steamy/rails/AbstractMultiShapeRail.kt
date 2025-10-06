@@ -14,6 +14,8 @@ import net.minecraft.world.level.block.BaseRailBlock
 import net.minecraft.world.level.block.RailBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
+import net.minecraft.world.level.block.state.properties.BlockStateProperties.RAIL_SHAPE
+import net.minecraft.world.level.block.state.properties.BlockStateProperties.RAIL_SHAPE_STRAIGHT
 import net.minecraft.world.level.block.state.properties.EnumProperty
 import net.minecraft.world.level.block.state.properties.Property
 import net.minecraft.world.level.block.state.properties.RailShape
@@ -59,14 +61,8 @@ abstract class AbstractMultiShapeRail(pProperties: Properties) : BaseRailBlock(f
             (pPlayer.pose != Pose.CROUCHING && pPlayer.getItemInHand(pHand).tags
                 .anyMatch(ModTags.Items.WRENCHES::equals))
 
-    @Deprecated("")
-    override fun isValidRailShape(shape: RailShape): Boolean {
-        return RAIL_SHAPE.getPossibleValues().contains(shape)
-    }
-
     companion object {
         // for compatibilty issues
-        val RAIL_SHAPE = RailShapeUtil.RAIL_SHAPE_STRAIGHT_FLAT
 
         // facing denotes direction of straight out
         val FACING: EnumProperty<Direction> = BlockStateProperties.HORIZONTAL_FACING

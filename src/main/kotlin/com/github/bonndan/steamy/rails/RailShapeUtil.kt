@@ -7,7 +7,7 @@ import net.minecraft.world.level.block.state.properties.RailShape
 object RailShapeUtil {
 
     val RAIL_SHAPE_STRAIGHT_FLAT: EnumProperty<RailShape> = EnumProperty.create(
-        "shape",
+        "rail_shape",
         RailShape::class.java
     ) { it == RailShape.NORTH_SOUTH || it == RailShape.EAST_WEST }
 

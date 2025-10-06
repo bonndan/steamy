@@ -1,6 +1,7 @@
 package com.github.bonndan.steamy.setup
 
 import com.github.bonndan.steamy.SteamyMod
+import com.github.bonndan.steamy.rendering.ChainModel
 import net.minecraft.client.model.geom.ModelLayerLocation
 import net.minecraft.client.renderer.entity.EntityRendererProvider
 import net.minecraft.client.renderer.entity.MinecartRenderer
@@ -27,6 +28,11 @@ object ModClientEventHandler {
         event.registerEntityRenderer(ModEntityTypes.WAGON.get()) { ctx: EntityRendererProvider.Context ->
             MinecartRenderer(ctx, MINECART_LAYER)
         }
+    }
+
+    @SubscribeEvent
+    fun onRegisterLayerDefinitions(event: EntityRenderersEvent.RegisterLayerDefinitions) {
+        event.registerLayerDefinition(ChainModel.LAYER_LOCATION, ChainModel::createBodyLayer)
     }
 
     @SubscribeEvent

@@ -3,13 +3,16 @@ package com.github.bonndan.steamy.rails
 import com.github.bonndan.steamy.train.RailHelper
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.core.Direction.Axis
 import net.minecraft.world.entity.vehicle.AbstractMinecart
 import net.minecraft.world.item.context.BlockPlaceContext
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.*
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
+import net.minecraft.world.level.block.state.properties.BlockStateProperties.RAIL_SHAPE
+import net.minecraft.world.level.block.state.properties.BlockStateProperties.RAIL_SHAPE_STRAIGHT
 import net.minecraft.world.level.block.state.properties.RailShape
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.material.Fluids
@@ -20,10 +23,17 @@ class JunctionRail(pProperties: Properties) : AbstractMultiShapeRail(pProperties
         val fluidstate: FluidState = pContext.level.getFluidState(pContext.clickedPos)
         val flag = fluidstate.type === Fluids.WATER
         val blockstate: BlockState = super.defaultBlockState()
-        return blockstate
+        return setFacing(blockstate, pContext.horizontalDirection)
             .setValue(WATERLOGGED, flag)
-            .setValue(RAIL_SHAPE, RailShapeUtil.DEFAULT)
     }
+
+    fun setFacing(state: BlockState, facing: Direction): BlockState =
+        state
+            .setValue(
+                RAIL_SHAPE_STRAIGHT,
+                if (facing.axis === Axis.X) RailShape.EAST_WEST else RailShape.NORTH_SOUTH
+            )
+            .setValue(FACING, facing)
 
     override fun getRailDirection(
         state: BlockState,
@@ -35,7 +45,7 @@ class JunctionRail(pProperties: Properties) : AbstractMultiShapeRail(pProperties
             return state.getValue(RAIL_SHAPE)
         }
 
-        return if (RailHelper.directionFromVelocity(cart.deltaMovement).axis === Direction.Axis.X) {
+        return if (RailHelper.directionFromVelocity(cart.deltaMovement).axis === Axis.X) {
             RailShape.EAST_WEST
         } else {
             RailShape.NORTH_SOUTH
@@ -79,6 +89,11 @@ class JunctionRail(pProperties: Properties) : AbstractMultiShapeRail(pProperties
         return if (direction == Direction.EAST || direction == Direction.WEST) {
             RailShape.EAST_WEST
         } else RailShape.NORTH_SOUTH
+    }
+
+    @Deprecated("")
+    override fun isValidRailShape(shape: RailShape): Boolean {
+        return RAIL_SHAPE_STRAIGHT.getPossibleValues().contains(shape)
     }
 
     companion object {

@@ -2,6 +2,7 @@ package com.github.bonndan.steamy.rails
 
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.core.Direction.Axis
 import net.minecraft.world.entity.vehicle.AbstractMinecart
 import net.minecraft.world.item.context.BlockPlaceContext
 import net.minecraft.world.level.BlockGetter
@@ -11,8 +12,8 @@ import net.minecraft.world.level.block.Mirror
 import net.minecraft.world.level.block.Rotation
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
-import net.minecraft.world.level.block.state.properties.*
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
+import net.minecraft.world.level.block.state.properties.RailShape
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.level.redstone.Orientation
@@ -30,15 +31,13 @@ class TeeJunctionRail(pProperties: Properties) :
             .setValue(BlockStateProperties.POWERED, pContext.level.hasNeighborSignal(pContext.clickedPos))
     }
 
-    private fun getRailShapeFromFacing(facing: Direction): RailShape {
-        return if (facing.axis === Direction.Axis.X) RailShape.EAST_WEST else RailShape.NORTH_SOUTH
-    }
-
-    fun setFacing(state: BlockState, facing: Direction): BlockState {
-        return state
-            .setValue(BlockStateProperties.RAIL_SHAPE, getRailShapeFromFacing(facing))
+    fun setFacing(state: BlockState, facing: Direction): BlockState =
+        state
+            .setValue(
+                BlockStateProperties.RAIL_SHAPE,
+                if (facing.axis === Axis.X) RailShape.EAST_WEST else RailShape.NORTH_SOUTH
+            )
             .setValue(FACING, facing)
-    }
 
     override fun getPriorityDirectionsToCheck(state: BlockState, entrance: Direction): Set<Direction> {
         val c = getRailConfiguration(state)
@@ -61,7 +60,8 @@ class TeeJunctionRail(pProperties: Properties) :
         cart: AbstractMinecart?
     ): RailShape {
         val c = getRailConfiguration(state)
-        val outDirection = if (state.getValue(BlockStateProperties.POWERED)) c.poweredDirection else c.unpoweredDirection
+        val outDirection =
+            if (state.getValue(BlockStateProperties.POWERED)) c.poweredDirection else c.unpoweredDirection
         return RailShapeUtil.getRailShape(c.rootDirection, outDirection)
     }
 

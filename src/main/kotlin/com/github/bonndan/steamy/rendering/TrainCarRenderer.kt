@@ -4,7 +4,6 @@ import com.github.bonndan.steamy.SteamyMod.Companion.MOD_ID
 import com.github.bonndan.steamy.train.LinkableCart
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
-import net.minecraft.client.Minecraft
 import net.minecraft.client.model.EntityModel
 import net.minecraft.client.model.geom.ModelLayerLocation
 import net.minecraft.client.model.geom.ModelPart
@@ -41,7 +40,7 @@ open class TrainCarRenderer<T>(
     ) {
         val car = renderState.trainCar ?: return
 
-        return render(
+        return renderFollowers(
             car = car,
             yaw = renderState.yRot,
             pPartialTicks = 0.0f, // partialTicks werden in extractRenderState berechnet
@@ -51,7 +50,7 @@ open class TrainCarRenderer<T>(
         )
     }
 
-    fun render(
+    private fun renderFollowers(
         car: LinkableCart<T>,
         yaw: Float,
         pPartialTicks: Float,
@@ -69,35 +68,32 @@ open class TrainCarRenderer<T>(
 
         while (t.getFollower().isPresent) {
             val nextT = t.getFollower().get()
-            val renderer = Minecraft.getInstance().entityRenderDispatcher.getRenderer(nextT as AbstractMinecart)
-            if (renderer is RenderWithAttachmentPoints<*>) {
+            val cart = nextT as AbstractMinecart
 
-                renderer as RenderWithAttachmentPoints<T>
-                // translate to next train location
-                val nextTPos: Vec3 = nextT.getPosition(pPartialTicks)
-                val tPos: Vec3 = (t as AbstractMinecart).getPosition(pPartialTicks)
-                var offset: Vec3 = nextTPos.subtract(tPos)
-                pose.translate(offset.x, offset.y, offset.z)
-                val newAttachmentPoints: Pair<Vec3, Vec3> = renderer.renderCarAndGetAttachmentPoints(
-                    nextT,
-                    nextT.yRot,
-                    pPartialTicks,
-                    pose,
-                    buffer,
-                    pPackedLight
-                )
-                val from: Vec3 = newAttachmentPoints.first
-                val to: Vec3 = attachmentPoints.second
+            // translate to next train location
+            val nextTPos: Vec3 = cart.getPosition(pPartialTicks)
+            val tPos: Vec3 = (t as AbstractMinecart).getPosition(pPartialTicks)
+            var offset: Vec3 = nextTPos.subtract(tPos)
+            pose.translate(offset.x, offset.y, offset.z)
+            val newAttachmentPoints: Pair<Vec3, Vec3> = renderCarAndGetAttachmentPoints(
+                nextT,
+                nextT.yRot,
+                pPartialTicks,
+                pose,
+                buffer,
+                pPackedLight
+            )
+            val from: Vec3 = newAttachmentPoints.first
+            val to: Vec3 = attachmentPoints.second
 
-                // translate to "from" position
-                pose.pushPose()
-                offset = from.subtract(nextTPos)
-                pose.translate(offset.x, offset.y, offset.z)
-                getAndRenderChain(from, to, pose, buffer, pPackedLight)
-                pose.popPose()
+            // translate to "from" position
+            pose.pushPose()
+            offset = from.subtract(nextTPos)
+            pose.translate(offset.x, offset.y, offset.z)
+            getAndRenderChain(from, to, pose, buffer, pPackedLight)
+            pose.popPose()
 
-                attachmentPoints = newAttachmentPoints
-            }
+            attachmentPoints = newAttachmentPoints
 
             t = nextT
         }
@@ -121,8 +117,7 @@ open class TrainCarRenderer<T>(
         matrixStack.mulPose(com.mojang.math.Axis.YP.rotation(-kotlin.math.atan2(vec.z, vec.x).toFloat()))
         matrixStack.mulPose(com.mojang.math.Axis.ZP.rotation((kotlin.math.asin(vec.y / dist)).toFloat()))
         matrixStack.pushPose()
-        val ivertexbuilderChain: VertexConsumer =
-            buffer.getBuffer(chainModel.renderType(CHAIN_TEXTURE))
+        val ivertexbuilderChain: VertexConsumer = buffer.getBuffer(chainModel.renderType(CHAIN_TEXTURE))
         for (i in 1..<segments) {
             matrixStack.pushPose()
             matrixStack.translate(i / 4.0, 0.0, 0.0)
