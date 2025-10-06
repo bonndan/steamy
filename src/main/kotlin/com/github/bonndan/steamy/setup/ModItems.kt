@@ -1,11 +1,12 @@
 package com.github.bonndan.steamy.setup
 
-import com.github.bonndan.steamy.locomotive.item.LocomotiveItem
+import com.github.bonndan.steamy.wagons.item.LocomotiveItem
 import com.github.bonndan.steamy.setup.ModBlocks.JUNCTION_RAIL
 import com.github.bonndan.steamy.setup.ModBlocks.SWITCH_RAIL
 import com.github.bonndan.steamy.setup.ModBlocks.TEE_JUNCTION_RAIL
 import com.github.bonndan.steamy.train.SpringItem
 import com.github.bonndan.steamy.train.WrenchItem
+import com.github.bonndan.steamy.wagons.item.WagonItem
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.CreativeModeTab
@@ -21,6 +22,7 @@ object ModItems {
     private val PRIVATE_TAB_REGISTRY = MultiMap<ResourceKey<CreativeModeTab>, Supplier<out Item>>()
 
     lateinit var LOCOMOTIVE : DeferredItem<Item>
+    lateinit var WAGON : DeferredItem<Item>
     lateinit var SPRING: DeferredItem<Item>
     lateinit var CONDUCTORS_WRENCH: DeferredItem<Item>
 
@@ -33,6 +35,12 @@ object ModItems {
         LOCOMOTIVE = itemRegister.registerItem(
             "locomotive",
             { it: Item.Properties -> LocomotiveItem(it) },
+            defaultItemProperties(1)
+        )
+
+        WAGON = itemRegister.registerItem(
+            "wagon",
+            { it: Item.Properties -> WagonItem(it) },
             defaultItemProperties(1)
         )
 
@@ -68,6 +76,7 @@ object ModItems {
         )
 
         PRIVATE_TAB_REGISTRY.putInsert(CreativeModeTabs.TOOLS_AND_UTILITIES, LOCOMOTIVE)
+        PRIVATE_TAB_REGISTRY.putInsert(CreativeModeTabs.TOOLS_AND_UTILITIES, WAGON)
         PRIVATE_TAB_REGISTRY.putInsert(CreativeModeTabs.TOOLS_AND_UTILITIES, SPRING)
         PRIVATE_TAB_REGISTRY.putInsert(CreativeModeTabs.TOOLS_AND_UTILITIES, CONDUCTORS_WRENCH)
         PRIVATE_TAB_REGISTRY.putInsert(CreativeModeTabs.TOOLS_AND_UTILITIES, SWITCH_RAIL_ITEM)

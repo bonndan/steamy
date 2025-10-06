@@ -1,7 +1,8 @@
 package com.github.bonndan.steamy.setup
 
 import com.github.bonndan.steamy.SteamyMod
-import com.github.bonndan.steamy.locomotive.entity.LocomotiveEntity
+import com.github.bonndan.steamy.wagons.entity.LocomotiveEntity
+import com.github.bonndan.steamy.wagons.entity.WagonEntity
 import com.github.bonndan.steamy.setup.Registration.ENTITIES
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
@@ -27,6 +28,18 @@ object ModEntityTypes {
                 .clientTrackingRange(8)
                 .setShouldReceiveVelocityUpdates(true)
                 .build(asResourceKey("locomotive"))
+        })
+
+    val WAGON: Supplier<EntityType<WagonEntity>> =
+        ENTITIES.register("wagon", Supplier {
+            EntityType.Builder.of(
+                { type: EntityType<WagonEntity>, level: Level -> WagonEntity(type, level) },
+                MobCategory.MISC
+            )
+                .sized(1.0f, 1.0f)
+                .clientTrackingRange(8)
+                .setShouldReceiveVelocityUpdates(true)
+                .build(asResourceKey("wagon"))
         })
 
 

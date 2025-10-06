@@ -1,6 +1,6 @@
 package com.github.bonndan.steamy.train
 
-import com.github.bonndan.steamy.locomotive.entity.LocomotiveEntity
+import com.github.bonndan.steamy.wagons.entity.LocomotiveEntity
 import com.github.bonndan.steamy.setup.ModItems
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Vec3i

@@ -1,6 +1,6 @@
 package com.github.bonndan.steamy.setup
 
-import com.github.bonndan.steamy.locomotive.entity.LocomotiveEntity
+import com.github.bonndan.steamy.wagons.entity.LocomotiveEntity
 import net.minecraft.client.Minecraft
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.neoforged.bus.api.SubscribeEvent

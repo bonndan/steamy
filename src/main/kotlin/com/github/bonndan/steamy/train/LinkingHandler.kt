@@ -2,6 +2,7 @@ package com.github.bonndan.steamy.train
 
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.core.Vec3i
 import net.minecraft.network.syncher.EntityDataAccessor
 import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
@@ -210,7 +211,59 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
         return hordir
     }
 
+    fun computeYaw(): Float {
+        val yrot = entity.yRot
+        // if the car is part of a train, enforce that direction instead
+        val railShape = getRailShape()
+        if (follower.isPresent && railShape.isPresent) {
+            val r = RailHelper.traverseBi(
+                entity,
+                entity.onPos.above(),
+                RailHelper.samePositionPredicate(follower.get() as AbstractMinecart),
+                5,
+                entity
+            )
+            if (r.isPresent) {
+                val yaw =
+                    yawHelper(r.get(), this as AbstractMinecart, follower.get() as Entity)
+                val directionOpt = RailHelper.getDirectionToOtherExit(yaw, railShape.get())
+                if (directionOpt.isPresent) {
+                    val direction: Vec3i = directionOpt.get()
+                    return ((Mth.atan2(
+                        direction.z.toDouble(),
+                        direction.x.toDouble()
+                    ) * 180.0 / Math.PI).toFloat() + 90)
+                }
+            }
+        } else if (leader.isPresent && railShape.isPresent) {
+            val r = RailHelper.traverseBi(
+                entity,
+                entity.onPos.above(),
+                RailHelper.samePositionPredicate(leader.get() as AbstractMinecart),
+                5,
+                entity
+            )
+            if (r.isPresent) {
+                val hordir = yawHelper(r.get(), entity, leader.get() as AbstractMinecart)
+                val directionOpt = RailHelper.getDirectionToOtherExit(hordir, railShape.get())
+                if (directionOpt.isPresent) {
+                    val direction: Vec3i = directionOpt.get()
+                    return ((Mth.atan2(
+                        -direction.z.toDouble(),
+                        -direction.x.toDouble()
+                    ) * 180.0 / Math.PI).toFloat() + 90)
+                }
+            }
+        } else {
+            val d1 = entity.xo - entity.x
+            val d3 = entity.zo - entity.z
+            if (d1 * d1 + d3 * d3 > 0.001) {
+                return ((Mth.atan2(d3, d1) * 180.0 / Math.PI).toFloat() + 90)
+            }
+        }
 
+        return yrot
+    }
 
 
     private fun fixUtil(mag: Double): Double {

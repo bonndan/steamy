@@ -1,4 +1,4 @@
-package com.github.bonndan.steamy.locomotive.entity
+package com.github.bonndan.steamy.wagons.entity
 
 import com.github.bonndan.steamy.setup.ModItems
 import com.github.bonndan.steamy.setup.ModItems.CONDUCTORS_WRENCH
@@ -95,7 +95,7 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
         super.tick()
 
         linkingHandler.tickLoad()
-        this.yRot = computeYaw()
+        this.yRot = linkingHandler.computeYaw()
         val yrot = this.yRot
         super.tick()
         this.yRot = yrot
@@ -127,61 +127,6 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
 
     override fun getMotionDirection(): Direction {
         return Direction.fromYRot((this.yRot).toDouble())
-    }
-
-
-    fun computeYaw(): Float {
-        val yrot = this.yRot
-        // if the car is part of a train, enforce that direction instead
-        val railShape = linkingHandler.getRailShape()
-        if (linkingHandler.follower.isPresent && railShape.isPresent) {
-            val r = RailHelper.traverseBi(
-                this,
-                this.onPos.above(),
-                RailHelper.samePositionPredicate(linkingHandler.follower.get() as AbstractMinecart),
-                5,
-                this
-            )
-            if (r.isPresent) {
-                val yaw =
-                    linkingHandler.yawHelper(r.get(), this as AbstractMinecart, linkingHandler.follower.get() as Entity)
-                val directionOpt = RailHelper.getDirectionToOtherExit(yaw, railShape.get())
-                if (directionOpt.isPresent) {
-                    val direction: Vec3i = directionOpt.get()
-                    return ((Mth.atan2(
-                        direction.z.toDouble(),
-                        direction.x.toDouble()
-                    ) * 180.0 / Math.PI).toFloat() + 90)
-                }
-            }
-        } else if (linkingHandler.leader.isPresent && railShape.isPresent) {
-            val r = RailHelper.traverseBi(
-                this,
-                this.onPos.above(),
-                RailHelper.samePositionPredicate(linkingHandler.leader.get() as AbstractMinecart),
-                5,
-                this
-            )
-            if (r.isPresent) {
-                val hordir = linkingHandler.yawHelper(r.get(), this, linkingHandler.leader.get() as AbstractMinecart)
-                val directionOpt = RailHelper.getDirectionToOtherExit(hordir, railShape.get())
-                if (directionOpt.isPresent) {
-                    val direction: Vec3i = directionOpt.get()
-                    return ((Mth.atan2(
-                        -direction.z.toDouble(),
-                        -direction.x.toDouble()
-                    ) * 180.0 / Math.PI).toFloat() + 90)
-                }
-            }
-        } else {
-            val d1 = this.xo - this.x
-            val d3 = this.zo - this.z
-            if (d1 * d1 + d3 * d3 > 0.001) {
-                return ((Mth.atan2(d3, d1) * 180.0 / Math.PI).toFloat() + 90)
-            }
-        }
-
-        return yrot
     }
 
     override fun interact(player: Player, hand: InteractionHand): InteractionResult {

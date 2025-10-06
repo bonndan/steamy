@@ -29,6 +29,10 @@ object ModClientEventHandler {
         event.registerEntityRenderer(ModEntityTypes.LOCOMOTIVE.get()) { ctx: EntityRendererProvider.Context ->
             MinecartRenderer(ctx, MINECART_LAYER)
         }
+
+        event.registerEntityRenderer(ModEntityTypes.WAGON.get()) { ctx: EntityRendererProvider.Context ->
+            MinecartRenderer(ctx, MINECART_LAYER)
+        }
     }
 
     @SubscribeEvent

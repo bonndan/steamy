@@ -1,6 +1,6 @@
-package com.github.bonndan.steamy.locomotive.item
+package com.github.bonndan.steamy.wagons.item
 
-import com.github.bonndan.steamy.locomotive.entity.LocomotiveEntity
+import com.github.bonndan.steamy.wagons.entity.WagonEntity
 import com.github.bonndan.steamy.setup.ModEntityTypes
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.stats.Stats
@@ -18,7 +18,7 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.HitResult
 
-class LocomotiveItem(props: Properties) : Item(props) {
+class WagonItem(props: Properties) : Item(props) {
 
 
     override fun use(world: Level, player: Player, hand: InteractionHand): InteractionResult {
@@ -71,18 +71,18 @@ class LocomotiveItem(props: Properties) : Item(props) {
     }
 
 
-    private fun getEntity(world: Level, stack: ItemStack, hitResult: BlockHitResult, player: Player): LocomotiveEntity? {
+    private fun getEntity(world: Level, stack: ItemStack, hitResult: BlockHitResult, player: Player): WagonEntity? {
 
-        val entityType: EntityType<LocomotiveEntity> = ModEntityTypes.LOCOMOTIVE.get()
-        val locomotive: LocomotiveEntity? = entityType.create(world, EntitySpawnReason.SPAWN_ITEM_USE)
-        if (locomotive != null) {
+        val entityType: EntityType<WagonEntity> = ModEntityTypes.WAGON.get()
+        val wagon: WagonEntity? = entityType.create(world, EntitySpawnReason.SPAWN_ITEM_USE)
+        if (wagon != null) {
             val vec3 = hitResult.getLocation();
-            locomotive.setInitialPos(vec3.x, vec3.y, vec3.z);
+            wagon.setInitialPos(vec3.x, vec3.y, vec3.z);
             if (world is ServerLevel) {
-                EntityType<LocomotiveEntity>.createDefaultStackConfig<LocomotiveEntity>(world, stack, player).accept(locomotive);
+                EntityType<WagonEntity>.createDefaultStackConfig<WagonEntity>(world, stack, player).accept(wagon);
             }
         }
 
-        return locomotive
+        return wagon
     }
 }
