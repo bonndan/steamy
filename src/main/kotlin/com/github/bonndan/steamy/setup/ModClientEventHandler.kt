@@ -2,9 +2,9 @@ package com.github.bonndan.steamy.setup
 
 import com.github.bonndan.steamy.SteamyMod
 import com.github.bonndan.steamy.rendering.ChainModel
+import com.github.bonndan.steamy.rendering.TrainCarRenderer
 import net.minecraft.client.model.geom.ModelLayerLocation
 import net.minecraft.client.renderer.entity.EntityRendererProvider
-import net.minecraft.client.renderer.entity.MinecartRenderer
 import net.minecraft.resources.ResourceLocation
 import net.neoforged.api.distmarker.Dist
 import net.neoforged.bus.api.SubscribeEvent
@@ -18,15 +18,16 @@ object ModClientEventHandler {
 
     val MINECART_LAYER = ModelLayerLocation(ResourceLocation.fromNamespaceAndPath("minecraft", "minecart"), "main")
 
+
     @SubscribeEvent
     fun onRegisterEntityRenderers(event: EntityRenderersEvent.RegisterRenderers) {
 
         event.registerEntityRenderer(ModEntityTypes.LOCOMOTIVE.get()) { ctx: EntityRendererProvider.Context ->
-            MinecartRenderer(ctx, MINECART_LAYER)
+            TrainCarRenderer(ctx, MINECART_LAYER,ResourceLocation.withDefaultNamespace("textures/entity/minecart.png"))
         }
 
         event.registerEntityRenderer(ModEntityTypes.WAGON.get()) { ctx: EntityRendererProvider.Context ->
-            MinecartRenderer(ctx, MINECART_LAYER)
+            TrainCarRenderer(ctx, MINECART_LAYER, ResourceLocation.withDefaultNamespace("textures/entity/minecart.png"))
         }
     }
 

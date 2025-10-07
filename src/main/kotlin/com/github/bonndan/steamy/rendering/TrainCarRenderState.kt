@@ -16,23 +16,22 @@ class TrainCarRenderState<T> : MinecartRenderState() where T : AbstractMinecart,
     var hasCustomName: Boolean = false
     var position: Vec3 = Vec3.ZERO
     var oldPosition: Vec3 = Vec3.ZERO
-    var hurtTime: Int = 0
     var damage: Float = 0f
-    var hurtDir: Int = 0
     var xRotO: Float = 0f
     var yRotO: Float = 0f
-    
+
     fun updateFromEntity(entity: LinkableCart<T>, partialTicks: Float) {
         this.trainCar = entity
         this.leader = entity.getLeader()
         this.follower = entity.getFollower()
+        this.partialTick = partialTicks
 
         entity as AbstractMinecart
         this.customName = entity.customName
         this.hasCustomName = entity.hasCustomName()
         this.position = entity.getPosition(partialTicks)
         this.oldPosition = Vec3(entity.xOld, entity.yOld, entity.zOld)
-        this.hurtTime = entity.hurtTime
+        this.hurtTime = entity.hurtTime.toFloat()
         this.damage = entity.damage
         this.hurtDir = entity.hurtDir
         

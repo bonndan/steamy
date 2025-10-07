@@ -52,11 +52,13 @@ class SpringItem(properties: Properties) : Item(properties) {
 
         if (dominant === target) {
             player.displayClientMessage(Component.translatable("item.steamy.spring.notToSelf"), true)
+            resetLinked(stack)
             return
         }
 
         if (dominant !is LinkableCart<*> || target !is LinkableCart<*>) {
             player.displayClientMessage(Component.translatable("item.steamy.spring.notLinkable"), true)
+            resetLinked(stack)
             return
         }
 
