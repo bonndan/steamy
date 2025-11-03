@@ -1,5 +1,6 @@
 package com.github.bonndan.steamy.rails
 
+import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.StringRepresentable
@@ -11,6 +12,7 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.BlockPlaceContext
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.BaseRailBlock
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Mirror
 import net.minecraft.world.level.block.Rotation
@@ -24,6 +26,10 @@ import net.minecraft.world.level.redstone.Orientation
 import net.minecraft.world.phys.BlockHitResult
 
 class SwitchRail(pProperties: Properties) : AbstractMultiShapeRail(pProperties) {
+
+    override fun codec(): MapCodec<out BaseRailBlock> {
+        return CODEC
+    }
 
     enum class OutDirection(private val serializedName: String) : StringRepresentable {
         LEFT("left"),
@@ -167,12 +173,16 @@ class SwitchRail(pProperties: Properties) : AbstractMultiShapeRail(pProperties) 
         if (!world.isClientSide) {
             val flag = state.getValue(BlockStateProperties.POWERED)
             if (flag != world.hasNeighborSignal(pos)) {
-                world.setBlock(pos, state.cycle<Boolean>(BlockStateProperties.POWERED), 2)
+                world.setBlock(pos, state.cycle(BlockStateProperties.POWERED), 2)
             }
         }
     }
 
     override fun canConnectRedstone(state: BlockState, world: BlockGetter, pos: BlockPos, side: Direction?): Boolean {
         return true
+    }
+
+    companion object {
+        val CODEC: MapCodec<SwitchRail> = simpleCodec(::SwitchRail)
     }
 }

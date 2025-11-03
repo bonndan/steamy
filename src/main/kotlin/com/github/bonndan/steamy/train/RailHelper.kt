@@ -9,7 +9,6 @@ import net.minecraft.core.Vec3i
 import net.minecraft.world.entity.vehicle.AbstractMinecart
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.BaseRailBlock
-import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.RailShape
 import net.minecraft.world.phys.Vec3
@@ -17,7 +16,6 @@ import java.util.*
 import java.util.function.BiPredicate
 import java.util.function.Consumer
 import java.util.function.Function
-import java.util.stream.Collectors
 import kotlin.math.abs
 
 
@@ -61,7 +59,7 @@ object RailHelper {
         return getRail(railPos, minecart.level())
             .flatMap(Function { pos ->
                 val shape: RailShape = getShape(minecart, pos, car.direction.opposite)
-                val dirs = EXITS_DIRECTION.get(shape)!!
+                val dirs = EXITS_DIRECTION[shape]!!
                 val first = traverse(minecart, pos, minecart.level(), dirs.second.horizontal.opposite, predicate, limit)
                 val second = traverse(minecart, pos, minecart.level(), dirs.first.horizontal.opposite, predicate, limit)
                 val result: Optional<Pair<Direction, Int>> = if (second.isEmpty) {
@@ -109,140 +107,6 @@ object RailHelper {
         })
     }
 
-    class RailPathFindNode(
-        var pos: BlockPos,
-        var prevExitTaken: Direction,
-        var pathLength: Int,
-        var heuristicValue: Double
-    ) : Comparable<RailPathFindNode> {
-
-        override fun compareTo(o: RailPathFindNode): Int {
-            if (this.heuristicValue == o.heuristicValue) {
-                return this.pathLength - o.pathLength
-            } else return if (this.heuristicValue - o.heuristicValue < 0) -1 else 1
-        }
-    }
-
-    /**
-     * @param prevExitTaken the direction of travel for the train
-     */
-    private fun getNextNodes(
-        minecart: AbstractMinecart,
-        pos: BlockPos,
-        prevExitTaken: Direction
-    ): MutableList<RailDir> {
-        val inputSide = prevExitTaken.opposite
-
-        // todo: we need to check if blocks are actually loaded
-        val state: BlockState = minecart.level().getBlockState(pos)
-        if (state.block is MultiShapeRail) {
-            // if rail is a MultiShapeRail, return all possible outputs from the input side
-            // it doesn't matter if this rail is automatically switching.
-            val r = state.block as MultiShapeRail
-            return r.getPossibleOutputDirections(state, inputSide).stream()
-                .map { RailDir(it) }
-                .collect(Collectors.toList())
-        }
-
-        val shape: RailShape = getShape(minecart, pos, prevExitTaken)
-        val shapes: MutableList<RailShape?> = mutableListOf(shape)
-        return shapes.stream().map<RailDir?> { shape1: RailShape? ->
-            val dirs = EXITS_DIRECTION[shape]!!
-            if (dirs.first.horizontal == inputSide) {
-                return@map dirs.second
-            } else if (dirs.second.horizontal == inputSide) {
-                return@map dirs.first
-            }
-            null
-        }.filter { obj -> Objects.nonNull(obj) }.collect(Collectors.toList())
-    }
-
-    fun pathfind(
-        minecart: AbstractMinecart,
-        railPos: BlockPos,
-        prevDirTaken: Direction,
-        heuristic: Function<BlockPos, Double>
-    ): Optional<RailPathFindNode> {
-        val visited: MutableSet<Pair<BlockPos?, Direction?>?> = HashSet()
-        val queue = PriorityQueue<RailPathFindNode>()
-        val ends = PriorityQueue<RailPathFindNode>()
-        queue.add(RailPathFindNode(railPos, prevDirTaken, 0, heuristic.apply(railPos)!!))
-
-        while (!queue.isEmpty() && visited.size < MAX_VISITED && queue.peek().heuristicValue > 0.0) {
-            val curr = queue.poll()
-            // already explored this path
-            if (visited.contains(
-                    Pair<BlockPos?, Direction?>(
-                        curr.pos, curr.prevExitTaken
-                    )
-                )
-            ) continue
-
-            visited.add(
-                Pair<BlockPos?, Direction?>(
-                    curr.pos, curr.prevExitTaken
-                )
-            )
-
-            getNextNodes(minecart, curr.pos, curr.prevExitTaken).forEach(Consumer { raildir: RailDir? ->
-                val pos: BlockPos = if (raildir!!.above) curr.pos.relative(raildir.horizontal)
-                    .above() else curr.pos.relative(raildir.horizontal)
-                if (minecart.level().getBlockState(pos).`is`(Blocks.VOID_AIR)) {
-                    ends.add(RailPathFindNode(pos, raildir.horizontal, curr.pathLength + 1, heuristic.apply(pos)!!))
-                } else {
-                    getRail(pos, minecart.level()).ifPresent(Consumer { nextPos ->
-                        queue.add(
-                            RailPathFindNode(
-                                nextPos,
-                                raildir.horizontal,
-                                curr.pathLength + 1,
-                                heuristic.apply(nextPos)
-                            )
-                        )
-                    })
-                }
-            })
-        }
-
-        queue.addAll(ends)
-        return if (queue.isEmpty()) Optional.empty() else Optional.of(queue.peek())
-    }
-
-    fun pickCheaperDir(
-        minecart: AbstractMinecart,
-        directions: MutableList<Direction>,
-        pos: BlockPos,
-        heuristic: Function<BlockPos, Double>,
-        level: Level
-    ): Direction {
-        // get all directions where output has a possible rail
-        val hasOutputDirections: MutableList<Pair<Direction, BlockPos>> =
-            directions.stream().map { d ->
-                Pair(d, getRail(pos.relative(d), level))
-            }.filter { p ->
-                p!!.second!!.isPresent
-            }.map { p ->
-                Pair(p!!.first, p.second.get())
-            }.collect(Collectors.toList())
-
-        // fallback
-        if (hasOutputDirections.isEmpty()) return directions.get(0)
-
-        val hasPath: MutableList<Pair<Direction, RailPathFindNode>> = hasOutputDirections.stream()
-            .map { p -> Pair(p!!.first, pathfind(minecart, p.second, p.first, heuristic)) }
-            .filter { p -> p!!.second!!.isPresent }
-            .map { p -> Pair(p!!.first, p.second!!.get()) }
-            .collect(Collectors.toList())
-
-        // fallback
-        if (hasPath.isEmpty()) return hasOutputDirections[0].first
-
-        val best = hasPath.stream()
-            .min(Comparator.comparing(Function { obj -> obj!!.second }))
-            .get()
-        return best.first
-    }
-
     private fun getNormal(dir: Direction): Vec3i {
         return Vec3i(dir.stepX, dir.stepY, dir.stepZ)
     }
@@ -271,7 +135,6 @@ object RailHelper {
                 map[RailShape.NORTH_EAST] = Pair(north, east)
             })
 
-    private const val MAX_VISITED = 200
 
     val EXITS_DIRECTION: MutableMap<RailShape, Pair<RailDir, RailDir>> =
         Util.make<EnumMap<RailShape, Pair<RailDir, RailDir>>>(

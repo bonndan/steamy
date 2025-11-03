@@ -1,5 +1,6 @@
 package com.github.bonndan.steamy.rails
 
+import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.Direction.Axis
@@ -7,6 +8,7 @@ import net.minecraft.world.entity.vehicle.AbstractMinecart
 import net.minecraft.world.item.context.BlockPlaceContext
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.BaseRailBlock
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Mirror
 import net.minecraft.world.level.block.Rotation
@@ -20,6 +22,10 @@ import net.minecraft.world.level.redstone.Orientation
 
 class TeeJunctionRail(pProperties: Properties) :
     AbstractMultiShapeRail(pProperties) {
+
+    override fun codec(): MapCodec<out BaseRailBlock> {
+        return CODEC
+    }
 
     override fun getStateForPlacement(pContext: BlockPlaceContext): BlockState {
         val fluidstate: FluidState = pContext.level.getFluidState(pContext.clickedPos)
@@ -125,4 +131,7 @@ class TeeJunctionRail(pProperties: Properties) :
         return true
     }
 
+    companion object {
+        val CODEC: MapCodec<TeeJunctionRail> = simpleCodec(::TeeJunctionRail)
+    }
 }
