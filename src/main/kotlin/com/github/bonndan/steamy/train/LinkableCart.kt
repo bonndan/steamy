@@ -147,16 +147,16 @@ interface LinkableCart<T> where T : AbstractMinecart, T : LinkableCart<T> {
             return false
         }
 
-        val pair = tryFindAndPrepareClosePair(train1, train2)
-        if (pair == null) {
-            player.displayClientMessage(Component.translatable("item.steamy.spring.tooFar"), true)
-        } else {
-            createLinks(pair.first, pair.second)
-        }
-
-
-        return true
-
+        tryFindAndPrepareClosePair(train1, train2).fold(
+            {
+                createLinks(it.first, it.second)
+                return true
+            },
+            {
+                player.displayClientMessage(Component.translatable(it.message!!), true)
+                return false
+            }
+        )
     }
 
     private fun createLinks(dominant: LinkableCart<T>, dominated: LinkableCart<T>) {
@@ -167,40 +167,44 @@ interface LinkableCart<T> where T : AbstractMinecart, T : LinkableCart<T> {
     private fun tryFindAndPrepareClosePair(
         train1: Train<T>,
         train2: Train<T>
-    ): Pair<LinkableCart<T>, LinkableCart<T>>? {
+    ): Result<Pair<LinkableCart<T>, LinkableCart<T>>> {
 
-        val closest = findClosestPair(train1, train2) ?: return null
+        val closest = findClosestPair(train1, train2)
+        if (closest.isFailure) {
+            return closest
+        }
 
-        if (closest.first == train1.getHead() && closest.second == train2.getHead()) {
+        val closestPair = closest.getOrThrow()
+        if (closestPair.first == train1.getHead() && closestPair.second == train2.getHead()) {
             // if trying to attach to head loco then loco is solo
             if (train1.tug.isPresent) {
                 return closest
             } else {
                 invertTrain(train2)
-                return swap(closest)
+                return Result.success(swap(closestPair))
             }
-        } else if (closest.first == train1.getHead() && closest.second == train2.getTail()) {
-            return (caseTailHead(train2, train1, swap(closest)))
-        } else if (closest.first == train1.getTail() && closest.second == train2.getHead()) {
-            Optional.of(caseTailHead(train1, train2, closest))
-        } else if (closest.first == train1.getTail() && closest.second == train2.getTail()) {
+        } else if (closestPair.first == train1.getHead() && closestPair.second == train2.getTail()) {
+            return Result.success(caseTailHead(train2, train1, swap(closestPair)))
+        } else if (closestPair.first == train1.getTail() && closestPair.second == train2.getHead()) {
+            return Result.success(caseTailHead(train1, train2, closestPair))
+        } else if (closestPair.first == train1.getTail() && closestPair.second == train2.getTail()) {
             if (train2.tug.isPresent) {
                 invertTrain(train1)
-                Optional.of(swap(closest))
+                return Result.success(swap(closestPair))
             } else {
                 invertTrain(train2)
-                Optional.of(closest)
+                return Result.success(closestPair)
             }
         }
 
-        return null
+        return Result.failure(Exception("Unreachable code reached"))
     }
 
 
     private fun findClosestPair(
         train1: Train<T>,
         train2: Train<T>
-    ): Pair<LinkableCart<T>, LinkableCart<T>>? {
+    ): Result<Pair<LinkableCart<T>, LinkableCart<T>>> {
 
         var mindistance = Int.MAX_VALUE
         var pair: Pair<LinkableCart<T>, LinkableCart<T>>? = null
@@ -219,13 +223,15 @@ interface LinkableCart<T> where T : AbstractMinecart, T : LinkableCart<T> {
         }
 
         if (pair == null) {
-            return null
+            return Result.failure(Exception("No close pairs found"))
         }
 
-        return if (isNonLocoOrNotFollowed(pair.first) && isNonLocoOrNotFollowed(pair.second)) {
-            return pair
+        return if (!isNonLocoOrNotFollowed(pair.first)) {
+            Result.failure(Exception("The first end is a loco with followers"))
+        } else if (!isNonLocoOrNotFollowed(pair.second)) {
+            Result.failure(Exception("The second end is a loco with followers"))
         } else {
-            null
+            Result.success(pair)
         }
     }
 
@@ -242,7 +248,6 @@ interface LinkableCart<T> where T : AbstractMinecart, T : LinkableCart<T> {
                 RailHelper.getRail(car2.onPos.above(), car2.level()).map({ rp -> rp.equals(blockPos) }).orElse(false)
             },
             5,
-            car2
         ).map({ obj -> obj.second })
     }
 

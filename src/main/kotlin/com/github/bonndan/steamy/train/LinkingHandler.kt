@@ -67,7 +67,6 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
         entity.getEntityData().set(entity.getDominatedIdAccessor(), follower.map { obj -> (obj as AbstractMinecart).id }.orElse(-1))
     }
 
-
     fun readAdditionalSaveData(input: ValueInput) {
         linkData = deserializeLinkInfo(input)
         waitForDominated = input.getBooleanOr("hasChild", false)
@@ -221,7 +220,6 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
                 entity.onPos.above(),
                 RailHelper.samePositionPredicate(follower.get() as AbstractMinecart),
                 5,
-                entity
             )
             if (pair.isPresent) {
                 val yaw =
@@ -241,7 +239,6 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
                 entity.onPos.above(),
                 RailHelper.samePositionPredicate(leader.get() as AbstractMinecart),
                 5,
-                entity
             )
             if (r.isPresent) {
                 val hordir = yawHelper(r.get(), entity, leader.get() as AbstractMinecart)
@@ -272,7 +269,7 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
 
 
     fun doChainMath() {
-        leader.ifPresent({ parent ->
+        leader.ifPresent { parent ->
 
             if (parent !is AbstractMinecart) {
                 return@ifPresent
@@ -284,7 +281,6 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
                     entity.onPos.above(),
                     RailHelper.samePositionPredicate(parent),
                     5,
-                    entity as AbstractMinecart //todo entity seems to be the same as first argument in LittleLogistics
                 )
             // this is a fix to mitigate "bouncing" when trains start moving from a stopped position
             val docked = train.tug.isPresent && this.train.tug.get().deltaMovement.equals(Vec3.ZERO)
@@ -328,7 +324,7 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
                 leader.ifPresent { it.removeDominated() }
                 entity.removeDominant()
             }
-        })
+        }
     }
 
     class LinkData(var uuid: String?, var hasChild: Boolean, var x: Double, var y: Double, var z: Double)

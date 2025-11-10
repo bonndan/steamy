@@ -53,12 +53,11 @@ object RailHelper {
         railPos: BlockPos,
         predicate: BiPredicate<Direction, BlockPos>,
         limit: Int,
-        car: AbstractMinecart
     ): Optional<Pair<Direction, Int>> {
 
         return getRail(railPos, minecart.level())
             .flatMap(Function { pos ->
-                val shape: RailShape = getShape(minecart, pos, car.direction.opposite)
+                val shape: RailShape = getShape(minecart, pos, minecart.direction.opposite)
                 val dirs = EXITS_DIRECTION[shape]!!
                 val first = traverse(minecart, pos, minecart.level(), dirs.second.horizontal.opposite, predicate, limit)
                 val second = traverse(minecart, pos, minecart.level(), dirs.first.horizontal.opposite, predicate, limit)

@@ -20,10 +20,10 @@ class Train<T>(private var head: LinkableCart<T>) where T : AbstractMinecart, T 
         }
 
         val list: MutableList<LinkableCart<T>> = ArrayList()
-        var barge = Optional.of(head)
-        while (barge.isPresent) {
-            list.add(barge.get())
-            barge = getNext(barge.get())
+        var vehicle = Optional.of(head)
+        while (vehicle.isPresent) {
+            list.add(vehicle.get())
+            vehicle = getNext(vehicle.get())
         }
         return list
     }

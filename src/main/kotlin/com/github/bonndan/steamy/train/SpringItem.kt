@@ -62,7 +62,7 @@ class SpringItem(properties: Properties) : Item(properties) {
             return
         }
 
-        if (dominant.linkEntities(player, target ) && !player.isCreative) {
+        if (dominant.linkEntities(player, target) && !player.isCreative) {
             stack.shrink(1)
         }
         resetLinked(stack)
