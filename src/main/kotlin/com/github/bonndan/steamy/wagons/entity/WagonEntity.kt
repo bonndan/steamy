@@ -61,8 +61,6 @@ class WagonEntity(entityType: EntityType<out Minecart>, level: Level) : Minecart
 
     override fun tick() {
 
-        super.tick()
-
         linkingHandler.tickLoad()
         this.yRot = linkingHandler.computeYaw()
         val yrot = this.yRot

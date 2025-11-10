@@ -63,8 +63,10 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
         } else if (waitForDominated) {
 
         }
-        entity.getEntityData().set(entity.getDominantIdAccessor(), leader.map { obj -> (obj as AbstractMinecart).id }.orElse(-1))
-        entity.getEntityData().set(entity.getDominatedIdAccessor(), follower.map { obj -> (obj as AbstractMinecart).id }.orElse(-1))
+        entity.getEntityData()
+            .set(entity.getDominantIdAccessor(), leader.map { obj -> (obj as AbstractMinecart).id }.orElse(-1))
+        entity.getEntityData()
+            .set(entity.getDominatedIdAccessor(), follower.map { obj -> (obj as AbstractMinecart).id }.orElse(-1))
     }
 
     fun readAdditionalSaveData(input: ValueInput) {
@@ -275,13 +277,12 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
                 return@ifPresent
             }
 
-            val railDirDis =
-                RailHelper.traverseBi(
-                    entity as AbstractMinecart,
-                    entity.onPos.above(),
-                    RailHelper.samePositionPredicate(parent),
-                    5,
-                )
+            val railDirDis = RailHelper.traverseBi(
+                entity as AbstractMinecart,
+                entity.onPos.above(),
+                RailHelper.samePositionPredicate(parent),
+                5,
+            )
             // this is a fix to mitigate "bouncing" when trains start moving from a stopped position
             val docked = train.tug.isPresent && this.train.tug.get().deltaMovement.equals(Vec3.ZERO)
             val maxDist = if (docked) 1.0 else 1.2

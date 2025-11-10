@@ -92,8 +92,6 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
 
     override fun tick() {
 
-        super.tick()
-
         linkingHandler.tickLoad()
         this.yRot = linkingHandler.computeYaw()
         val yrot = this.yRot
