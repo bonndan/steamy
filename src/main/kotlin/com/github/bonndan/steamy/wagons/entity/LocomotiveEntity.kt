@@ -118,14 +118,6 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
         linkingHandler.onSyncedDataUpdated(key)
     }
 
-    // force render since we delegate rendering to the head of the train
-    override fun shouldRender(pX: Double, pY: Double, pZ: Double): Boolean {
-        return true
-    }
-
-    override fun getMotionDirection(): Direction {
-        return Direction.fromYRot((this.yRot).toDouble())
-    }
 
     override fun interact(player: Player, hand: InteractionHand): InteractionResult {
 
