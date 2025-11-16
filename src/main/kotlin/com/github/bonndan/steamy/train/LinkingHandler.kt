@@ -31,6 +31,8 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
     var leader: Optional<LinkableCart<T>> = Optional.empty()
     var follower: Optional<LinkableCart<T>> = Optional.empty()
     var train: Train<T> = Train(entity)
+    var attachmentFrontPos : Vec3? = null
+    var attachmentBackPos : Vec3? = null
 
     fun initWithEntityAndPosition(level: Level, x: Double, y: Double, z: Double) {
 

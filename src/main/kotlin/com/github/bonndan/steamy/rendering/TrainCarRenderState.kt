@@ -2,9 +2,12 @@ package com.github.bonndan.steamy.rendering
 
 import com.github.bonndan.steamy.train.LinkableCart
 import net.minecraft.client.renderer.entity.state.MinecartRenderState
-import net.minecraft.network.chat.Component
+import net.minecraft.util.Mth
 import net.minecraft.world.entity.vehicle.AbstractMinecart
+import net.minecraft.world.phys.Vec3
 import java.util.*
+import kotlin.math.atan
+import kotlin.math.atan2
 
 class TrainCarRenderState<T> : MinecartRenderState() where T : AbstractMinecart, T : LinkableCart<T> {
 
@@ -12,9 +15,6 @@ class TrainCarRenderState<T> : MinecartRenderState() where T : AbstractMinecart,
     var leader: Optional<LinkableCart<T>> = Optional.empty()
     var follower: Optional<LinkableCart<T>> = Optional.empty()
 
-    fun updateFromEntity(entity: LinkableCart<T>) {
-        this.trainCar = entity
-        this.leader = entity.getLeader()
-        this.follower = entity.getFollower()
-    }
+    var pitch: Float? = null
+    var translationOffset: Vec3? = null
 }

@@ -21,6 +21,8 @@ import java.util.*
 import java.util.function.Consumer
 import java.util.function.Function
 import java.util.stream.Stream
+import kotlin.math.atan
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -314,6 +316,8 @@ interface LinkableCart<T> where T : AbstractMinecart, T : LinkableCart<T> {
      * the vanilla code does not (leading to lots of flipping)
      *
      * Possible workaround for https://bugs.mojang.com/browse/MC/issues/MC-9551
+     * Compare this with OldMinecartBehavior#getPosOffs, which could maybe be overridden be overwriting the getBehavior
+     * method in AbstractMinecart
      */
     fun getPosOffs(pX: Double, pY: Double, pZ: Double, pOffset: Double): Vec3? {
 
@@ -448,4 +452,54 @@ interface LinkableCart<T> where T : AbstractMinecart, T : LinkableCart<T> {
     private fun swap(pair: Pair<LinkableCart<T>, LinkableCart<T>>): Pair<LinkableCart<T>, LinkableCart<T>> {
         return Pair(pair.second, pair.first)
     }
+
+    /**
+     * This was the getPosOffs method in LinkableCart
+     */
+    fun calcTrackDirectionBasedValues(partialTicks: Float): TrackDirectionValues? {
+
+        val linkable = this
+        val car = this as AbstractMinecart
+        val pos: Vec3 = car.getPosition(partialTicks) ?: return null
+
+        val dx = Mth.lerp(partialTicks.toDouble(), car.xo, car.x)
+        val dy = Mth.lerp(partialTicks.toDouble(), car.yo, car.y)
+        val dz = Mth.lerp(partialTicks.toDouble(), car.zo, car.z)
+        val forwardDir = linkable.getPosOffs(dx, dy, dz, 0.3) ?: pos
+        val backDir = linkable.getPosOffs(dx, dy, dz, -0.3) ?: pos
+
+
+
+        val centre = Vec3(pos.x, (forwardDir.y + backDir.y) / 2.0, pos.z)
+        val offset = centre.subtract(dx, dy, dz)
+
+
+        var trackDirection = forwardDir.subtract(backDir)
+        var pitch = Mth.lerp(partialTicks, car.xRotO, car.xRot)
+        var yRot : Float = car.yRot
+        if (trackDirection.length() != 0.0) {
+            trackDirection = trackDirection.normalize()
+            yRot = (atan2(-trackDirection.z, -trackDirection.x) * 180.0 / Math.PI).toFloat()
+            pitch = (atan(-trackDirection.y) * 73.0).toFloat()
+        }
+
+        val chainCentre = centre.add(0.0, .22, 0.0)
+
+
+        return TrackDirectionValues(
+            pitch =pitch,
+            yRot = yRot,
+            frontPos = chainCentre.add(trackDirection.scale(.2)),
+            backPos = chainCentre.add(trackDirection.scale(-.2)),
+            translationOffset = offset
+        )
+    }
+
+    data class TrackDirectionValues(
+        val pitch: Float,
+        val yRot: Float,
+        val frontPos: Vec3,
+        val backPos: Vec3,
+        val translationOffset: Vec3
+    )
 }
