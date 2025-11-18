@@ -469,14 +469,13 @@ interface LinkableCart<T> where T : AbstractMinecart, T : LinkableCart<T> {
         val backDir = linkable.getPosOffs(dx, dy, dz, -0.3) ?: pos
 
 
-
         val centre = Vec3(pos.x, (forwardDir.y + backDir.y) / 2.0, pos.z)
         val offset = centre.subtract(dx, dy, dz)
 
 
         var trackDirection = forwardDir.subtract(backDir)
         var pitch = Mth.lerp(partialTicks, car.xRotO, car.xRot)
-        var yRot : Float = car.yRot
+        var yRot: Float = car.yRot
         if (trackDirection.length() != 0.0) {
             trackDirection = trackDirection.normalize()
             yRot = (atan2(-trackDirection.z, -trackDirection.x) * 180.0 / Math.PI).toFloat()
@@ -485,12 +484,11 @@ interface LinkableCart<T> where T : AbstractMinecart, T : LinkableCart<T> {
 
         val chainCentre = centre.add(0.0, .22, 0.0)
 
-
         return TrackDirectionValues(
-            pitch =pitch,
+            pitch = pitch,
             yRot = yRot,
-            frontPos = chainCentre.add(trackDirection.scale(.2)),
-            backPos = chainCentre.add(trackDirection.scale(-.2)),
+            frontPos = chainCentre.add(trackDirection.scale(.3)),
+            backPos = chainCentre.add(trackDirection.scale(-.3)),
             translationOffset = offset
         )
     }

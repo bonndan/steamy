@@ -98,22 +98,31 @@ open class TrainCarRenderer<T>(
             if (renderState.frontPos != null) {
                 from = renderState.frontPos
             }
-           // if (car.linkingHandler.attachmentFrontPos != null) {
-            //   from = car.linkingHandler.attachmentFrontPos!!
-            //}
+            if (car.linkingHandler.attachmentFrontPos != null) {
+                from = car.linkingHandler.attachmentFrontPos!!
+            }
 
             val leader = car.getLeader().get()
-            var to = (leader as AbstractMinecart).getPosition(renderState.partialTick)
-            // if (leader.linkingHandler.attachmentBackPos != null) {
-            //     to = leader.linkingHandler.attachmentBackPos!!
-            // }
+            val leaderCart = leader as AbstractMinecart
+            val carPos = leaderCart.getPosition(renderState.partialTick)
+            val to = if (leader.linkingHandler.attachmentBackPos != null) {
+                leader.linkingHandler.attachmentBackPos!!
+            } else carPos
 
             if (from == null || to == null) return
-            getAndRenderChain(from, to, poseStack, bufferSource, packedLight)
+            poseStack.pushPose()
+            poseStack.translate(calculateChainOffset(carPos, to))
+            renderChain(from, to, poseStack, bufferSource, packedLight)
+            poseStack.popPose()
         }
     }
 
-    private fun getAndRenderChain(
+    private fun calculateChainOffset(
+        carPos: Vec3,
+        to: Vec3
+    ): Vec3 = carPos.subtract(to).add(0.0, 0.3, 0.0)
+
+    private fun renderChain(
         from: Vec3,
         to: Vec3,
         poseStack: PoseStack,
@@ -121,18 +130,20 @@ open class TrainCarRenderer<T>(
         packedLight: Int
     ) {
         poseStack.pushPose()
-        val vec: Vec3 = from.vectorTo(to)
-        val dist: Double = vec.length()
-        val segments = ceil(dist * 4).toInt()
 
+        val vec: Vec3 = from.vectorTo(to)
         // TODO: fix pitch
         poseStack.mulPose(Axis.YP.rotation(-atan2(vec.z, vec.x).toFloat()))
+        val dist: Double = vec.length()
         poseStack.mulPose(Axis.ZP.rotation((asin(vec.y / dist)).toFloat()))
+        poseStack.mulPose(Axis.XP.rotationDegrees(90.0f))
         poseStack.pushPose()
+
         val ivertexbuilderChain: VertexConsumer = buffer.getBuffer(chainModel.renderType(CHAIN_TEXTURE))
+        val segments = ceil(dist * 4).toInt()
         for (i in 1..<segments) {
             poseStack.pushPose()
-            poseStack.translate(i / 4.0, 0.2, 0.0)
+            poseStack.translate(i / 4.0, 0.0, 0.0)
             chainModel.renderToBuffer(
                 poseStack,
                 ivertexbuilderChain,
@@ -193,6 +204,8 @@ open class TrainCarRenderer<T>(
             renderState.pitch = it.pitch
             renderState.translationOffset = it.translationOffset
             renderState.yRot = it.yRot
+            entity.linkingHandler.attachmentFrontPos = it.frontPos
+            entity.linkingHandler.attachmentBackPos = it.backPos
         }
     }
 
