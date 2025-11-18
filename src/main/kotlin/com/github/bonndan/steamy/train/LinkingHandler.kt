@@ -18,6 +18,7 @@ import net.minecraft.world.phys.Vec3
 import java.util.*
 import java.util.function.Function
 import java.util.function.Predicate
+import kotlin.jvm.optionals.getOrNull
 import kotlin.math.floor
 
 const val DOMINANT = "dominant"
@@ -154,14 +155,18 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
         objectValue.putDouble("z", info.z)
     }
 
-    private fun deserializeLinkInfo(input: ValueInput) =
-        LinkData(
-            uuid = input.getString("uuid").orElse(null),
-            hasChild = input.getBooleanOr("hasChild", false),
-            x = input.getDoubleOr("x", 0.0),
-            y = input.getDoubleOr("y", 0.0),
-            z = input.getDoubleOr("z", 0.0),
+    private fun deserializeLinkInfo(input: ValueInput): LinkData? {
+        val dominantInput = input.child(DOMINANT).getOrNull() ?: return null
+        val uuid = dominantInput.getString("uuid").orElse(null) ?: return null
+
+        return LinkData(
+            uuid = uuid,
+            hasChild = dominantInput.getBooleanOr("hasChild", false),
+            x = dominantInput.getDoubleOr("x", 0.0),
+            y = dominantInput.getDoubleOr("y", 0.0),
+            z = dominantInput.getDoubleOr("z", 0.0),
         )
+    }
 
     fun handleLinkableKill() {
         this.follower.ifPresent { it.removeDominant() }
