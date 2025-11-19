@@ -1,19 +1,13 @@
 package com.github.bonndan.steamy.rails
 
 import net.minecraft.core.Direction
-import net.minecraft.world.level.block.state.properties.EnumProperty
 import net.minecraft.world.level.block.state.properties.RailShape
 
 object RailShapeUtil {
 
-    val RAIL_SHAPE_STRAIGHT_FLAT: EnumProperty<RailShape> = EnumProperty.create(
-        "rail_shape",
-        RailShape::class.java
-    ) { it == RailShape.NORTH_SOUTH || it == RailShape.EAST_WEST }
-
     val DEFAULT: RailShape = RailShape.NORTH_SOUTH
 
-    fun getRailShape(node1: Direction, node2: Direction?): RailShape {
+    fun getRailShape(node1: Direction, node2: Direction): RailShape {
         return when (node1) {
             Direction.NORTH -> when (node2) {
                 Direction.SOUTH -> RailShape.NORTH_SOUTH

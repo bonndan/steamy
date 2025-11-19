@@ -1,6 +1,5 @@
 package com.github.bonndan.steamy.rails
 
-import com.github.bonndan.steamy.train.RailHelper
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -19,7 +18,7 @@ import net.minecraft.world.level.block.state.properties.RailShape
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.material.Fluids
 
-class JunctionRail(pProperties: Properties) : AbstractMultiShapeRail(pProperties) {
+class JunctionRail(pProperties: Properties) : MultiShapeRail(pProperties) {
 
     override fun codec(): MapCodec<out BaseRailBlock> {
         return CODEC
@@ -47,53 +46,22 @@ class JunctionRail(pProperties: Properties) : AbstractMultiShapeRail(pProperties
         pos: BlockPos,
         cart: AbstractMinecart?
     ): RailShape {
-        // If no cart, return stored shape
         if (cart == null) {
             return state.getValue(RAIL_SHAPE)
         }
 
-        // Determine direction from velocity
-        val direction = RailHelper.directionFromVelocity(cart.deltaMovement)
-
-        // Junction rail should always return a straight rail shape matching the cart's direction
-        // This prevents the cart from trying to turn
-        return if (direction.axis === Axis.X) {
+        // For carts, return shape based on their movement direction
+        // Use getMotionDirection() which is more reliable than velocity
+        val cartDirection = cart.motionDirection
+        return if (cartDirection.axis === Axis.X)
             RailShape.EAST_WEST
-        } else {
+        else
             RailShape.NORTH_SOUTH
-        }
     }
 
     override fun createBlockStateDefinition(pBuilder: StateDefinition.Builder<Block?, BlockState?>) {
         super.createBlockStateDefinition(pBuilder)
         pBuilder.add(WATERLOGGED, RAIL_SHAPE, FACING)
-    }
-
-    override fun setRailState(
-        state: BlockState,
-        world: Level,
-        pos: BlockPos,
-        `in`: Direction,
-        out: Direction
-    ): Boolean {
-        return `in`.axis.isHorizontal && `in`.opposite == out
-    }
-
-    override fun getPossibleOutputDirections(state: BlockState, inputSide: Direction): Set<Direction> {
-        // Junction rail allows straight-through movement on both axes
-        // From any horizontal input, output is the opposite direction
-        return when (inputSide) {
-            Direction.NORTH -> setOf(Direction.SOUTH)
-            Direction.SOUTH -> setOf(Direction.NORTH)
-            Direction.EAST -> setOf(Direction.WEST)
-            Direction.WEST -> setOf(Direction.EAST)
-            else -> NO_POSSIBILITIES
-        }
-    }
-
-    override fun getPriorityDirectionsToCheck(state: BlockState, entrance: Direction): Set<Direction> {
-        // No priority directions - junction only allows straight through
-        return emptySet()
     }
 
     override fun getVanillaRailShapeFromDirection(
@@ -102,9 +70,10 @@ class JunctionRail(pProperties: Properties) : AbstractMultiShapeRail(pProperties
         level: Level,
         direction: Direction
     ): RailShape {
-        return if (direction == Direction.EAST || direction == Direction.WEST) {
+        return if (direction == Direction.EAST || direction == Direction.WEST)
             RailShape.EAST_WEST
-        } else RailShape.NORTH_SOUTH
+        else
+            RailShape.NORTH_SOUTH
     }
 
     @Deprecated("")
@@ -114,6 +83,5 @@ class JunctionRail(pProperties: Properties) : AbstractMultiShapeRail(pProperties
 
     companion object {
         val CODEC: MapCodec<JunctionRail> = simpleCodec(::JunctionRail)
-        val NO_POSSIBILITIES: Set<Direction> = setOf<Direction>()
     }
 }

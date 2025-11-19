@@ -10,7 +10,6 @@ import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.BaseRailBlock
 import net.minecraft.world.level.block.Block
-import net.minecraft.world.level.block.Mirror
 import net.minecraft.world.level.block.Rotation
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
@@ -20,8 +19,7 @@ import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.level.redstone.Orientation
 
-class TeeJunctionRail(pProperties: Properties) :
-    AbstractMultiShapeRail(pProperties) {
+class TeeJunctionRail(pProperties: Properties) : MultiShapeRail(pProperties) {
 
     override fun codec(): MapCodec<out BaseRailBlock> {
         return CODEC
@@ -45,13 +43,8 @@ class TeeJunctionRail(pProperties: Properties) :
             )
             .setValue(FACING, facing)
 
-    override fun getPriorityDirectionsToCheck(state: BlockState, entrance: Direction): Set<Direction> {
-        val c = getRailConfiguration(state)
-        return if (entrance == c.poweredDirection) setOf(c.unpoweredDirection) else setOf()
-    }
-
     private fun getRailConfiguration(state: BlockState): BranchingRailConfiguration {
-        val facing: Direction = state.getValue<Direction>(FACING)
+        val facing: Direction = state.getValue(FACING)
         val unpoweredDirection = facing.clockWise
         val poweredDirection = facing.counterClockWise
         val rootDirection = facing.opposite
@@ -71,22 +64,6 @@ class TeeJunctionRail(pProperties: Properties) :
         return RailShapeUtil.getRailShape(c.rootDirection, outDirection)
     }
 
-    override fun setRailState(
-        state: BlockState,
-        world: Level,
-        pos: BlockPos,
-        `in`: Direction,
-        out: Direction
-    ): Boolean {
-        return getPossibleOutputDirections(state, `in`).contains(out)
-    }
-
-    override fun getPossibleOutputDirections(state: BlockState, inputSide: Direction): Set<Direction> {
-        val powered: Boolean = state.getValue(BlockStateProperties.POWERED)
-        val poss = getRailConfiguration(state).getPossibleDirections(inputSide, false, powered)
-        return poss
-    }
-
     override fun getVanillaRailShapeFromDirection(
         state: BlockState,
         pos: BlockPos,
@@ -98,10 +75,6 @@ class TeeJunctionRail(pProperties: Properties) :
 
     public override fun rotate(pState: BlockState, pRot: Rotation): BlockState {
         return setFacing(pState, pRot.rotate(pState.getValue(FACING)))
-    }
-
-    public override fun mirror(pState: BlockState, pMirror: Mirror): BlockState {
-        return pState
     }
 
     override fun createBlockStateDefinition(pBuilder: StateDefinition.Builder<Block, BlockState>) {

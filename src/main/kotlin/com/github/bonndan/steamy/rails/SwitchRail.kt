@@ -25,7 +25,7 @@ import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.level.redstone.Orientation
 import net.minecraft.world.phys.BlockHitResult
 
-class SwitchRail(pProperties: Properties) : AbstractMultiShapeRail(pProperties) {
+class SwitchRail(pProperties: Properties) : MultiShapeRail(pProperties) {
 
     override fun codec(): MapCodec<out BaseRailBlock> {
         return CODEC
@@ -90,29 +90,6 @@ class SwitchRail(pProperties: Properties) : AbstractMultiShapeRail(pProperties) 
         )
     }
 
-    override fun setRailState(
-        state: BlockState,
-        world: Level,
-        pos: BlockPos,
-        `in`: Direction,
-        out: Direction
-    ): Boolean {
-
-        return getPossibleOutputDirections(state, `in`).contains(out)
-    }
-
-
-    override fun getPossibleOutputDirections(state: BlockState, inputSide: Direction): Set<Direction> {
-        val c: BranchingRailConfiguration = getRailConfiguration(state)
-        val powered: Boolean = state.getValue(BlockStateProperties.POWERED)
-        return c.getPossibleDirections(inputSide, false, powered)
-    }
-
-    override fun getPriorityDirectionsToCheck(state: BlockState, entrance: Direction): Set<Direction> {
-        val c: BranchingRailConfiguration = getRailConfiguration(state)
-        return if (entrance == c.poweredDirection) setOf(c.unpoweredDirection) else setOf()
-    }
-
     override fun getVanillaRailShapeFromDirection(
         state: BlockState,
         pos: BlockPos,
@@ -134,7 +111,7 @@ class SwitchRail(pProperties: Properties) : AbstractMultiShapeRail(pProperties) 
             )
         } else if (pMirror == Mirror.FRONT_BACK) return rotate(
             pState,
-            pMirror.getRotation(pState.getValue<Direction>(FACING))
+            pMirror.getRotation(pState.getValue(FACING))
         )
         return pState
     }

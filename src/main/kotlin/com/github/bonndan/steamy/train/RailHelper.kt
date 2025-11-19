@@ -42,9 +42,9 @@ object RailHelper {
             return (state.block as MultiShapeRail).getVanillaRailShapeFromDirection(
                 state, pos, minecart.level(), direction
             )
-        } else {
-            return (state.block as BaseRailBlock).getRailDirection(state, minecart.level(), pos, minecart)
         }
+
+        return (state.block as BaseRailBlock).getRailDirection(state, minecart.level(), pos, minecart)
     }
 
 
@@ -180,7 +180,8 @@ object RailHelper {
     }
 
     fun getRail(
-        inpos: BlockPos, level: Level
+        inpos: BlockPos,
+        level: Level
     ): Optional<BlockPos> { // if using with carts, pass in getOnPos.above
         for (pos in listOf(inpos, inpos.below())) { // check for ascending rail.
             val state: BlockState = level.getBlockState(pos)
@@ -191,13 +192,12 @@ object RailHelper {
         return Optional.empty()
     }
 
-    fun directionFromVelocity(deltaMovement: Vec3): Direction {
+    fun directionFromVelocity(deltaMovement: Vec3): Direction =
         if (abs(deltaMovement.x) > abs(deltaMovement.z)) {
-            return if (deltaMovement.x > 0) Direction.EAST else Direction.WEST
+            if (deltaMovement.x > 0) Direction.EAST else Direction.WEST
         } else {
-            return if (deltaMovement.z > 0) Direction.SOUTH else Direction.NORTH
+            if (deltaMovement.z > 0) Direction.SOUTH else Direction.NORTH
         }
-    }
 
     fun getOtherExit(direction: Direction?, shape: RailShape?): Optional<RailDir> {
 

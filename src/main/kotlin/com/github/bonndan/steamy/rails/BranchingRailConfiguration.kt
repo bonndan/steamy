@@ -11,31 +11,19 @@ class BranchingRailConfiguration(
 
     fun getPossibleDirections(
         inputSide: Direction?,
-        automaticSwitching: Boolean,
         powered: Boolean
     ): Set<Direction> {
+
         if (inputSide == rootDirection) {
-            if (automaticSwitching) {
-                return setOf(unpoweredDirection, poweredDirection)
-            } else {
-                return if (powered) setOf(poweredDirection) else setOf(unpoweredDirection)
-            }
+            return if (powered) setOf(poweredDirection) else setOf(unpoweredDirection)
         }
 
         if (inputSide == unpoweredDirection) {
-            if (automaticSwitching) {
-                return setOf(rootDirection)
-            } else {
-                return if (powered) NO_POSSIBILITIES else setOf(rootDirection)
-            }
+            return if (powered) NO_POSSIBILITIES else setOf(rootDirection)
         }
 
         if (inputSide == poweredDirection) {
-            if (automaticSwitching) {
-                return setOf(rootDirection)
-            } else {
-                return if (powered) setOf(rootDirection) else NO_POSSIBILITIES
-            }
+            return if (powered) setOf(rootDirection) else NO_POSSIBILITIES
         }
 
         return NO_POSSIBILITIES
