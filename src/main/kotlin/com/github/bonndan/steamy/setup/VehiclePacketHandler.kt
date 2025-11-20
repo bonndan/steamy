@@ -30,7 +30,6 @@ object VehiclePacketHandler {
         ClientPacketDistributor.sendToServer(payload)
     }
 
-
     private fun handleSetThrottle(operation: SetThrottlePacket, ctx: IPayloadContext) {
         ctx.enqueueWork {
             Optional.of(ctx)
@@ -44,6 +43,7 @@ object VehiclePacketHandler {
                 }
         }
     }
+
     private fun handleSetThrottleClient(operation: SetThrottlePacket, ctx: IPayloadContext) {
         ctx.enqueueWork {
             val client = Minecraft.getInstance()
