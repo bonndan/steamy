@@ -7,11 +7,8 @@ import com.github.bonndan.steamy.setup.SetThrottlePacket
 import com.github.bonndan.steamy.setup.VehiclePacketHandler.sendToServer
 import com.github.bonndan.steamy.train.LinkableCart
 import com.github.bonndan.steamy.train.LinkingHandler
-import com.github.bonndan.steamy.train.RailHelper
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
-import net.minecraft.core.Vec3i
 import net.minecraft.core.component.DataComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.network.syncher.EntityDataAccessor
@@ -34,6 +31,7 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.GameRules
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.PoweredRailBlock
 import net.minecraft.world.level.block.state.properties.RailShape
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
@@ -51,6 +49,10 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
 
     override val linkingHandler = LinkingHandler(this)
 
+    /**
+     * "station" is an unpowered powered rail where the loco should apply brakes
+     */
+    private var lastStationRailPos: BlockPos? = null
 
     init {
         linkingHandler.initWithEntityAndPosition(level, x, y, z)
@@ -71,9 +73,12 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
         builder.define(DOMINATED_ID, -1)
     }
 
-    override fun getMaxSpeed(serverLevel: ServerLevel): Double {
-        return if (this.isInWater) super.getMaxSpeed(serverLevel) * 0.75 else super.getMaxSpeed(serverLevel) * 0.5
-    }
+    override fun getMaxSpeed(serverLevel: ServerLevel): Double =
+        if (this.isInWater) {
+            super.getMaxSpeed(serverLevel) * 0.75
+        } else {
+            super.getMaxSpeed(serverLevel) * 0.85
+        }
 
     override fun getDropItem(): Item {
         return ModItems.LOCOMOTIVE.get()
@@ -99,6 +104,7 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
         this.yRot = yrot
         if (!level().isClientSide) {
             linkingHandler.doChainMath()
+            checkForUnpoweredRail()
         }
 
     }
@@ -179,6 +185,7 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
      */
     override fun makeStepAlongTrack(pos: BlockPos, railShape: RailShape, speed: Double): Double {
 
+
         var speedFactor = 1.0
 
         // for the new behavior, only apply speed boost if the player is giving movement input
@@ -188,6 +195,33 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
             }
         }
         return super.makeStepAlongTrack(pos, railShape, speed * speedFactor)
+    }
+
+    /**
+     * Check if the locomotive is on an unpowered powered rail and apply brakes if so.
+     * Only applies brakes on first entry to the rail block.
+     */
+    private fun checkForUnpoweredRail() {
+        if (this.level().isClientSide) return
+
+        val pos = this.blockPosition()
+
+        // Only check if we've moved to a different position
+        if (pos == lastStationRailPos) return
+
+        val blockState = this.level().getBlockState(pos)
+        val block = blockState.block
+
+        if (block is PoweredRailBlock) {
+            val isPowered = blockState.getValue(PoweredRailBlock.POWERED)
+            if (!isPowered) {
+                // Apply brakes when running over unpowered powered rail
+                setThrottle(BRAKES)
+            }
+        }
+
+        // Update last checked position
+        lastStationRailPos = pos
     }
 
     override fun remove(r: RemovalReason) {
@@ -245,7 +279,6 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
                 if (this.isInWater) {
                     newSpeed = newSpeed.scale(0.95)
                 }
-                println("new speed [${newSpeed}]")
                 return newSpeed
             }
         }
