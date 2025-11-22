@@ -1,6 +1,5 @@
 package com.github.bonndan.steamy.rails
 
-import com.github.bonndan.steamy.rails.SwitchRail.OutDirection
 import com.github.bonndan.steamy.setup.ModTags
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -50,8 +49,9 @@ abstract class MultiShapeRail(pProperties: Properties) : BaseRailBlock(false, pP
 
     companion object {
 
-        // facing denotes direction of straight out
+        /**
+         * facing denotes direction of straight out, i.e. from texture top to bottom
+         */
         val FACING: EnumProperty<Direction> = BlockStateProperties.HORIZONTAL_FACING
-        val OUT_DIRECTION = EnumProperty.create("out_direction", OutDirection::class.java)
     }
 }

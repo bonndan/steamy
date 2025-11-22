@@ -7,30 +7,30 @@ object RailShapeUtil {
 
     val DEFAULT: RailShape = RailShape.NORTH_SOUTH
 
-    fun getRailShape(node1: Direction, node2: Direction): RailShape {
-        return when (node1) {
-            Direction.NORTH -> when (node2) {
+    fun createRailShape(from: Direction, to: Direction): RailShape =
+        when (from) {
+            Direction.NORTH -> when (to) {
                 Direction.SOUTH -> RailShape.NORTH_SOUTH
                 Direction.EAST -> RailShape.NORTH_EAST
                 Direction.WEST -> RailShape.NORTH_WEST
                 else -> DEFAULT
             }
 
-            Direction.EAST -> when (node2) {
+            Direction.EAST -> when (to) {
                 Direction.WEST -> RailShape.EAST_WEST
                 Direction.NORTH -> RailShape.NORTH_EAST
                 Direction.SOUTH -> RailShape.SOUTH_EAST
                 else -> DEFAULT
             }
 
-            Direction.SOUTH -> when (node2) {
+            Direction.SOUTH -> when (to) {
                 Direction.NORTH -> RailShape.NORTH_SOUTH
                 Direction.EAST -> RailShape.SOUTH_EAST
                 Direction.WEST -> RailShape.SOUTH_WEST
                 else -> DEFAULT
             }
 
-            Direction.WEST -> when (node2) {
+            Direction.WEST -> when (to) {
                 Direction.EAST -> RailShape.EAST_WEST
                 Direction.NORTH -> RailShape.NORTH_WEST
                 Direction.SOUTH -> RailShape.SOUTH_WEST
@@ -39,5 +39,4 @@ object RailShapeUtil {
 
             else -> DEFAULT
         }
-    }
 }

@@ -61,7 +61,7 @@ class TeeJunctionRail(pProperties: Properties) : MultiShapeRail(pProperties) {
         val c = getRailConfiguration(state)
         val outDirection =
             if (state.getValue(BlockStateProperties.POWERED)) c.poweredDirection else c.unpoweredDirection
-        return RailShapeUtil.getRailShape(c.rootDirection, outDirection)
+        return RailShapeUtil.createRailShape(c.rootDirection, outDirection)
     }
 
     override fun getVanillaRailShapeFromDirection(

@@ -1,8 +1,10 @@
 package com.github.bonndan.steamy.rails
 
+import com.github.bonndan.steamy.rails.RailShapeUtil.createRailShape
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.core.Direction.Axis
 import net.minecraft.util.StringRepresentable
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
@@ -19,6 +21,8 @@ import net.minecraft.world.level.block.Rotation
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
+import net.minecraft.world.level.block.state.properties.BlockStateProperties.RAIL_SHAPE
+import net.minecraft.world.level.block.state.properties.EnumProperty
 import net.minecraft.world.level.block.state.properties.RailShape
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.material.Fluids
@@ -31,15 +35,11 @@ class SwitchRail(pProperties: Properties) : MultiShapeRail(pProperties) {
         return CODEC
     }
 
-    enum class OutDirection(private val serializedName: String) : StringRepresentable {
+    enum class SwitchType(private val serializedName: String) : StringRepresentable {
         LEFT("left"),
         RIGHT("right");
 
-        fun getOutDirection(inDirection: Direction): Direction {
-            return if (this == RIGHT) inDirection.counterClockWise else inDirection.clockWise
-        }
-
-        fun opposite(): OutDirection {
+        fun opposite(): SwitchType {
             return if (this == LEFT) RIGHT else LEFT
         }
 
@@ -49,32 +49,19 @@ class SwitchRail(pProperties: Properties) : MultiShapeRail(pProperties) {
     }
 
     override fun getStateForPlacement(pContext: BlockPlaceContext): BlockState {
+
         val fluidstate: FluidState = pContext.level.getFluidState(pContext.clickedPos)
         val flag = fluidstate.type === Fluids.WATER
         val blockstate: BlockState = super.defaultBlockState()
-        return setFacing(blockstate, pContext.horizontalDirection)
+
+        return blockstate
+            .setValue(
+                RAIL_SHAPE,
+                if (pContext.horizontalDirection.axis === Axis.X) RailShape.EAST_WEST else RailShape.NORTH_SOUTH
+            )
+            .setValue(FACING, pContext.horizontalDirection)
             .setValue(WATERLOGGED, flag)
-            .setValue(OUT_DIRECTION, OutDirection.RIGHT)
-    }
-
-    private fun getRailShapeFromFacing(facing: Direction): RailShape {
-        return if (facing.axis === Direction.Axis.X) RailShape.EAST_WEST else RailShape.NORTH_SOUTH
-    }
-
-    fun setFacing(state: BlockState, facing: Direction): BlockState {
-        return state
-            .setValue(BlockStateProperties.RAIL_SHAPE, getRailShapeFromFacing(facing))
-            .setValue(FACING, facing)
-    }
-
-    private fun getRailConfiguration(state: BlockState): BranchingRailConfiguration {
-        val out: OutDirection = state.getValue(OUT_DIRECTION)
-
-        val unpoweredDirection: Direction = state.getValue(FACING)
-        val rootDirection = unpoweredDirection.opposite
-        val poweredDirection = out.getOutDirection(rootDirection)
-
-        return BranchingRailConfiguration(rootDirection, unpoweredDirection, poweredDirection)
+            .setValue(SWITCH_TYPE, SwitchType.RIGHT)
     }
 
     override fun getRailDirection(
@@ -83,11 +70,38 @@ class SwitchRail(pProperties: Properties) : MultiShapeRail(pProperties) {
         pos: BlockPos,
         cart: AbstractMinecart?
     ): RailShape {
-        val c: BranchingRailConfiguration = getRailConfiguration(state)
-        return RailShapeUtil.getRailShape(
-            c.rootDirection,
-            if (state.getValue(BlockStateProperties.POWERED)) c.poweredDirection else c.unpoweredDirection
+
+        //straight forward in the direction of placement, never switches
+        val facingDirection: Direction = state.getValue(FACING)
+        val switchType = state.getValue(SWITCH_TYPE)
+        val powered = state.getValue(BlockStateProperties.POWERED)
+        val cartDirection = cart?.motionDirection
+
+        return createRailShape(
+            from = facingDirection,
+            to = getCurrentOutDirection(facingDirection, switchType, powered, cartDirection)
         )
+    }
+
+    private fun getCurrentOutDirection(
+        facingDirection: Direction,
+        switchType: SwitchType,
+        powered: Boolean,
+        cartDirection: Direction?
+    ): Direction {
+
+        //straight forward through the switch
+        val unpoweredDirection = facingDirection.opposite
+
+        if (cartDirection == facingDirection) {
+            //entering from the back, always go straight
+            return unpoweredDirection
+        }
+
+        val poweredDirection =
+            if (switchType == SwitchType.RIGHT) facingDirection.counterClockWise else facingDirection.clockWise
+
+        return if (powered) poweredDirection else unpoweredDirection
     }
 
     override fun getVanillaRailShapeFromDirection(
@@ -100,14 +114,20 @@ class SwitchRail(pProperties: Properties) : MultiShapeRail(pProperties) {
     }
 
     public override fun rotate(pState: BlockState, pRot: Rotation): BlockState {
-        return setFacing(pState, pRot.rotate(pState.getValue(FACING)))
+        val facing = pRot.rotate(pState.getValue(FACING))
+        return pState
+            .setValue(
+                RAIL_SHAPE,
+                if (facing.axis === Axis.X) RailShape.EAST_WEST else RailShape.NORTH_SOUTH
+            )
+            .setValue(FACING, facing)
     }
 
     public override fun mirror(pState: BlockState, pMirror: Mirror): BlockState {
         if (pMirror == Mirror.LEFT_RIGHT) {
             return pState.setValue(
-                OUT_DIRECTION,
-                pState.getValue(OUT_DIRECTION).opposite()
+                SWITCH_TYPE,
+                pState.getValue(SWITCH_TYPE).opposite()
             )
         } else if (pMirror == Mirror.FRONT_BACK) return rotate(
             pState,
@@ -134,7 +154,7 @@ class SwitchRail(pProperties: Properties) : MultiShapeRail(pProperties) {
 
     override fun createBlockStateDefinition(pBuilder: StateDefinition.Builder<Block?, BlockState?>) {
         super.createBlockStateDefinition(pBuilder)
-        pBuilder.add(WATERLOGGED, FACING, BlockStateProperties.RAIL_SHAPE, OUT_DIRECTION, BlockStateProperties.POWERED)
+        pBuilder.add(WATERLOGGED, FACING, RAIL_SHAPE, SWITCH_TYPE, BlockStateProperties.POWERED)
     }
 
     override fun neighborChanged(
@@ -161,5 +181,10 @@ class SwitchRail(pProperties: Properties) : MultiShapeRail(pProperties) {
 
     companion object {
         val CODEC: MapCodec<SwitchRail> = simpleCodec(::SwitchRail)
+
+        /**
+         * The turn direction when the cart enters from the root direction
+         */
+        val SWITCH_TYPE: EnumProperty<SwitchType> = EnumProperty.create("out_direction", SwitchType::class.java)
     }
 }
