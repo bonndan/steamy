@@ -69,13 +69,13 @@ class TeeJunctionRail(pProperties: Properties) : MultiShapeRail(pProperties) {
             facing -> facing.opposite
 
             // eg facing south, comes from south:
-            facing.opposite -> if (powered) cartDirection.counterClockWise else cartDirection.clockWise
+            facing.opposite -> if (powered) facing.clockWise else facing.counterClockWise
 
             // eg facing south, comes from east:
-            facing.clockWise -> if (powered) cartDirection.opposite else cartDirection.counterClockWise
+            facing.clockWise -> if (powered) facing.clockWise else facing
 
             // eg facing south, comes from west:
-            facing.counterClockWise -> if (powered) cartDirection.clockWise else cartDirection.opposite
+            facing.counterClockWise -> if (powered) facing else facing.counterClockWise
 
             // does not make sense, but go straight
             else -> facing.opposite
