@@ -1,5 +1,6 @@
 package com.github.bonndan.steamy.rails
 
+import com.github.bonndan.steamy.rails.RailShapeUtil.createRailShape
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -43,25 +44,44 @@ class TeeJunctionRail(pProperties: Properties) : MultiShapeRail(pProperties) {
             )
             .setValue(FACING, facing)
 
-    private fun getRailConfiguration(state: BlockState): BranchingRailConfiguration {
-        val facing: Direction = state.getValue(FACING)
-        val unpoweredDirection = facing.clockWise
-        val poweredDirection = facing.counterClockWise
-        val rootDirection = facing.opposite
-
-        return BranchingRailConfiguration(rootDirection, unpoweredDirection, poweredDirection)
-    }
-
     override fun getRailDirection(
         state: BlockState,
         world: BlockGetter,
         pos: BlockPos,
         cart: AbstractMinecart?
     ): RailShape {
-        val c = getRailConfiguration(state)
-        val outDirection =
-            if (state.getValue(BlockStateProperties.POWERED)) c.poweredDirection else c.unpoweredDirection
-        return RailShapeUtil.createRailShape(c.rootDirection, outDirection)
+
+        // e.g. south, then there is no connection from north
+        val facing: Direction = state.getValue(FACING)
+        val powered = state.getValue(BlockStateProperties.POWERED)
+
+        val unpoweredDirection = facing.clockWise
+        val poweredDirection = facing.counterClockWise
+
+        if (cart == null) {
+            return createRailShape(facing, if (powered) poweredDirection else unpoweredDirection)
+        }
+
+        val cartDirection = cart.motionDirection
+
+        val out = when (cartDirection) {
+            // eg facing south, comes from north: go straight (although no visible connection)
+            facing -> facing.opposite
+
+            // eg facing south, comes from south:
+            facing.opposite -> if (powered) cartDirection.counterClockWise else cartDirection.clockWise
+
+            // eg facing south, comes from east:
+            facing.clockWise -> if (powered) cartDirection.opposite else cartDirection.counterClockWise
+
+            // eg facing south, comes from west:
+            facing.counterClockWise -> if (powered) cartDirection.clockWise else cartDirection.opposite
+
+            // does not make sense, but go straight
+            else -> facing.opposite
+        }
+
+        return createRailShape(cartDirection, out)
     }
 
     override fun getVanillaRailShapeFromDirection(
