@@ -15,6 +15,7 @@ import net.minecraft.world.level.block.Rotation
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
+import net.minecraft.world.level.block.state.properties.BlockStateProperties.RAIL_SHAPE
 import net.minecraft.world.level.block.state.properties.RailShape
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.material.Fluids
@@ -27,22 +28,18 @@ class TeeJunctionRail(pProperties: Properties) : MultiShapeRail(pProperties) {
     }
 
     override fun getStateForPlacement(pContext: BlockPlaceContext): BlockState {
-        val fluidstate: FluidState = pContext.level.getFluidState(pContext.clickedPos)
-        val flag = fluidstate.type === Fluids.WATER
-        val blockstate: BlockState = super.defaultBlockState()
 
-        return setFacing(blockstate, pContext.horizontalDirection)
-            .setValue(WATERLOGGED, flag)
+        val fluidstate: FluidState = pContext.level.getFluidState(pContext.clickedPos)
+
+        return super.defaultBlockState()
+            .setValue(
+                RAIL_SHAPE,
+                if (pContext.horizontalDirection.axis === Axis.X) RailShape.EAST_WEST else RailShape.NORTH_SOUTH
+            )
+            .setValue(FACING, pContext.horizontalDirection)
+            .setValue(WATERLOGGED, fluidstate.type === Fluids.WATER)
             .setValue(BlockStateProperties.POWERED, pContext.level.hasNeighborSignal(pContext.clickedPos))
     }
-
-    fun setFacing(state: BlockState, facing: Direction): BlockState =
-        state
-            .setValue(
-                BlockStateProperties.RAIL_SHAPE,
-                if (facing.axis === Axis.X) RailShape.EAST_WEST else RailShape.NORTH_SOUTH
-            )
-            .setValue(FACING, facing)
 
     override fun getRailDirection(
         state: BlockState,
@@ -94,7 +91,13 @@ class TeeJunctionRail(pProperties: Properties) : MultiShapeRail(pProperties) {
     }
 
     public override fun rotate(pState: BlockState, pRot: Rotation): BlockState {
-        return setFacing(pState, pRot.rotate(pState.getValue(FACING)))
+        val facing = pRot.rotate(pState.getValue(FACING))
+        return pState
+            .setValue(
+                RAIL_SHAPE,
+                if (facing.axis === Axis.X) RailShape.EAST_WEST else RailShape.NORTH_SOUTH
+            )
+            .setValue(FACING, facing)
     }
 
     override fun createBlockStateDefinition(pBuilder: StateDefinition.Builder<Block, BlockState>) {

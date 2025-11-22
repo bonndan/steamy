@@ -205,7 +205,7 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
     }
 
 
-    fun yawHelper(r: Pair<Direction, Int>, minecart: AbstractMinecart, entity: Entity): Direction {
+    private fun yawHelper(r: Pair<Direction, Int>, minecart: AbstractMinecart, entity: Entity): Direction {
         var hordir: Direction? = null
         if (r.second == 0) {
             val dirvec = Vec3(entity.xo - minecart.xo, 0.0, entity.zo - minecart.zo)
@@ -261,10 +261,10 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
                 }
             }
         } else {
-            val d1 = entity.xo - entity.x
-            val d3 = entity.zo - entity.z
-            if (d1 * d1 + d3 * d3 > 0.001) {
-                return ((Mth.atan2(d3, d1) * 180.0 / Math.PI).toFloat() + 90)
+            val dx = entity.xo - entity.x
+            val dz = entity.zo - entity.z
+            if (dx * dx + dz * dz > 0.001) {
+                return ((Mth.atan2(dz, dx) * 180.0 / Math.PI).toFloat() + 90)
             }
         }
 
