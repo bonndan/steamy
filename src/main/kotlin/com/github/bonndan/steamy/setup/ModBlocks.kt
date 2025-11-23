@@ -1,6 +1,5 @@
 package com.github.bonndan.steamy.setup
 
-import com.github.bonndan.steamy.rails.JunctionRail
 import com.github.bonndan.steamy.rails.SwitchRail
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.item.BlockItem
@@ -24,8 +23,6 @@ object ModBlocks {
 
     lateinit var SWITCH_RAIL: DeferredHolder<Block, SwitchRail>
 
-    lateinit var JUNCTION_RAIL: DeferredHolder<Block, JunctionRail>
-
     fun buildCreativeTab(event: BuildCreativeModeTabContentsEvent) {
         PRIVATE_TAB_REGISTRY.getOrDefault(event.tabKey, ArrayList())
             .forEach { supplier: Supplier<BlockItem> -> event.accept(supplier.get()) }
@@ -36,12 +33,6 @@ object ModBlocks {
         SWITCH_RAIL = register.registerBlock(
             "switch_rail",
             { SwitchRail(it) },
-            RAIL_BLOCK_BEHAVIOUR
-        )
-
-        JUNCTION_RAIL = register.registerBlock(
-            "junction_rail",
-            { JunctionRail(it) },
             RAIL_BLOCK_BEHAVIOUR
         )
     }

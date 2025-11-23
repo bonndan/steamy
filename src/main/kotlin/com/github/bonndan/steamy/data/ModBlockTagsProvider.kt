@@ -16,10 +16,8 @@ class ModBlockTagsProvider(
     override fun addTags(provider: HolderLookup.Provider) {
         tag(BlockTags.RAILS)
             .add(ModBlocks.SWITCH_RAIL.get())
-            .add(ModBlocks.JUNCTION_RAIL.get())
 
         tag(BlockTags.MINEABLE_WITH_PICKAXE)
             .add(ModBlocks.SWITCH_RAIL.get())
-            .add(ModBlocks.JUNCTION_RAIL.get())
     }
 }

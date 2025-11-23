@@ -1,8 +1,7 @@
 {
   "replace": false,
   "values": [
-    "steamy:switch_rail",
-    "steamy:junction_rail"
+    "steamy:switch_rail"
   ]
 }
 

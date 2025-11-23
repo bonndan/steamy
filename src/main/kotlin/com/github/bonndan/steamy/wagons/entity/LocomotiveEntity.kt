@@ -26,7 +26,9 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.entity.vehicle.AbstractMinecart
+import net.minecraft.world.entity.vehicle.MinecartBehavior
 import net.minecraft.world.entity.vehicle.MinecartFurnace
+import net.minecraft.world.entity.vehicle.OldMinecartBehavior
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.GameRules
@@ -62,10 +64,6 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
 
     override fun getDominantIdAccessor(): EntityDataAccessor<Int> = DOMINANT_ID
 
-    override fun getOnPos(): BlockPos {
-        return linkingHandler.getOnPos(this as AbstractMinecart)
-    }
-
     override fun defineSynchedData(builder: SynchedEntityData.Builder) {
         super.defineSynchedData(builder)
         builder.define(DATA_ID_THROTTLE, 0f)
@@ -97,16 +95,11 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
 
     override fun tick() {
 
-        linkingHandler.tickLoad()
-        this.yRot = linkingHandler.computeYaw()
-        val yrot = this.yRot
         super.tick()
-        this.yRot = yrot
+        linkingHandler.tickLoad()
         if (!level().isClientSide) {
-            linkingHandler.doChainMath()
             checkForUnpoweredRail()
         }
-
     }
 
     protected override fun readAdditionalSaveData(valueInput: ValueInput) {
@@ -284,6 +277,13 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
         }
 
         return superApplyNaturalSlowdown(speed)
+    }
+
+    override fun getBehavior(): MinecartBehavior {
+        if (!useExperimentalMovement(this.level())) {
+            return FixedBehavior(super.getBehavior() as OldMinecartBehavior, this)
+        }
+        return super.getBehavior()
     }
 
     private fun hasActiveThrottle() =

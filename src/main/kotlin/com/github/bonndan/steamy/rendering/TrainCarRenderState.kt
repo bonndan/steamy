@@ -14,7 +14,4 @@ class TrainCarRenderState<T> : MinecartRenderState() where T : AbstractMinecart,
     var trainCar: LinkableCart<T>? = null
     var leader: Optional<LinkableCart<T>> = Optional.empty()
     var follower: Optional<LinkableCart<T>> = Optional.empty()
-
-    var pitch: Float? = null
-    var translationOffset: Vec3? = null
 }

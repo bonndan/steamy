@@ -1,5 +1,7 @@
 package com.github.bonndan.steamy.train
 
+import com.github.bonndan.steamy.train.RailHelper.getOtherExit
+import com.github.bonndan.steamy.train.RailHelper.getRailAt
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.Vec3i
@@ -16,9 +18,11 @@ import net.minecraft.world.level.storage.ValueOutput
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import java.util.*
+import java.util.function.BiPredicate
 import java.util.function.Function
 import java.util.function.Predicate
 import kotlin.jvm.optionals.getOrNull
+import kotlin.math.abs
 import kotlin.math.floor
 
 const val DOMINANT = "dominant"
@@ -32,8 +36,6 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
     var leader: Optional<LinkableCart<T>> = Optional.empty()
     var follower: Optional<LinkableCart<T>> = Optional.empty()
     var train: Train<T> = Train(entity)
-    var attachmentFrontPos : Vec3? = null
-    var attachmentBackPos : Vec3? = null
 
     fun initWithEntityAndPosition(level: Level, x: Double, y: Double, z: Double) {
 
@@ -41,11 +43,17 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
         val state: BlockState = level.getBlockState(pos)
         if (state.block is BaseRailBlock) {
             val railshape: RailShape = (state.block as BaseRailBlock).getRailDirection(state, level, pos, entity)
-            val exit = RailHelper.EXITS[railshape]!!.first
-            entity.yRot =
-                RailHelper.directionFromVelocity(Vec3(exit.x.toDouble(), exit.y.toDouble(), exit.z.toDouble())).toYRot()
+            val exit = AbstractMinecart.exits(railshape).first
+            entity.yRot = directionFromVelocity(Vec3(exit.x.toDouble(), exit.y.toDouble(), exit.z.toDouble())).toYRot()
         }
     }
+
+    private fun directionFromVelocity(deltaMovement: Vec3): Direction =
+        if (abs(deltaMovement.x) > abs(deltaMovement.z)) {
+            if (deltaMovement.x > 0) Direction.EAST else Direction.WEST
+        } else {
+            if (deltaMovement.z > 0) Direction.SOUTH else Direction.NORTH
+        }
 
     fun tickLoad() {
         if (entity.level().isClientSide) {
@@ -70,6 +78,8 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
             .set(entity.getDominantIdAccessor(), leader.map { obj -> (obj as AbstractMinecart).id }.orElse(-1))
         entity.getEntityData()
             .set(entity.getDominatedIdAccessor(), follower.map { obj -> (obj as AbstractMinecart).id }.orElse(-1))
+
+        entity.yRot = computeYaw()
     }
 
     fun readAdditionalSaveData(input: ValueInput) {
@@ -143,16 +153,15 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
 
     private fun serializeLinkInfo(output: ValueOutput, linkData: LinkData?) {
 
-        val info = linkData
-        if (info?.uuid == null) return
+        if (linkData?.uuid == null) return
 
         val objectValue = output.child(DOMINANT)
 
-        objectValue.putString("uuid", info.uuid)
-        objectValue.putBoolean("hasChild", info.hasChild)
-        objectValue.putDouble("x", info.x)
-        objectValue.putDouble("y", info.y)
-        objectValue.putDouble("z", info.z)
+        objectValue.putString("uuid", linkData.uuid)
+        objectValue.putBoolean("hasChild", linkData.hasChild)
+        objectValue.putDouble("x", linkData.x)
+        objectValue.putDouble("y", linkData.y)
+        objectValue.putDouble("z", linkData.z)
     }
 
     private fun deserializeLinkInfo(input: ValueInput): LinkData? {
@@ -186,25 +195,6 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
     }
 
 
-    // avoid inheriting mixins
-    fun getOnPos(cart: AbstractMinecart): BlockPos {
-        val position: Vec3 = cart.position()
-        val i: Int = Mth.floor(position.x)
-        val j: Int = Mth.floor(position.y - 0.2)
-        val k: Int = Mth.floor(position.z)
-        val blockpos = BlockPos(i, j, k)
-        if (cart.level().isEmptyBlock(blockpos)) {
-            val blockpos1: BlockPos = blockpos.below()
-            val blockstate: BlockState = cart.level().getBlockState(blockpos1)
-            if (blockstate.collisionExtendsVertically(cart.level(), blockpos1, cart)) {
-                return blockpos1
-            }
-        }
-
-        return blockpos
-    }
-
-
     private fun yawHelper(r: Pair<Direction, Int>, minecart: AbstractMinecart, entity: Entity): Direction {
         var hordir: Direction? = null
         if (r.second == 0) {
@@ -227,13 +217,13 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
             val pair = RailHelper.traverseBi(
                 entity,
                 entity.onPos.above(),
-                RailHelper.samePositionPredicate(follower.get() as AbstractMinecart),
+                samePositionPredicate(follower.get() as AbstractMinecart),
                 5,
             )
             if (pair.isPresent) {
                 val yaw =
                     yawHelper(pair.get(), entity as AbstractMinecart, follower.get() as Entity)
-                val directionOpt = RailHelper.getDirectionToOtherExit(yaw, railShape.get())
+                val directionOpt = getDirectionToOtherExit(yaw, railShape.get())
                 if (directionOpt.isPresent) {
                     val direction: Vec3i = directionOpt.get()
                     return ((Mth.atan2(
@@ -246,12 +236,12 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
             val r = RailHelper.traverseBi(
                 entity,
                 entity.onPos.above(),
-                RailHelper.samePositionPredicate(leader.get() as AbstractMinecart),
+                samePositionPredicate(leader.get() as AbstractMinecart),
                 5,
             )
             if (r.isPresent) {
                 val hordir = yawHelper(r.get(), entity, leader.get() as AbstractMinecart)
-                val directionOpt = RailHelper.getDirectionToOtherExit(hordir, railShape.get())
+                val directionOpt = getDirectionToOtherExit(hordir, railShape.get())
                 if (directionOpt.isPresent) {
                     val direction: Vec3i = directionOpt.get()
                     return ((Mth.atan2(
@@ -271,13 +261,21 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
         return yrot
     }
 
+    fun getDirectionToOtherExit(direction: Direction, shape: RailShape): Optional<Vec3i> {
+        return getOtherExit(direction, shape)
+            .map { other -> getNormal(direction).subtract(getNormal(other.horizontal)) }
+    }
+
+    private fun getNormal(dir: Direction): Vec3i {
+        return Vec3i(dir.stepX, dir.stepY, dir.stepZ)
+    }
 
     private fun fixUtil(mag: Double): Double {
         return (if (mag < 0) 0 else 1).toDouble()
     }
 
 
-    fun doChainMath() {
+    fun doChainMathForLeader() {
         leader.ifPresent { parent ->
 
             if (parent !is AbstractMinecart) {
@@ -287,7 +285,7 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
             val railDirDis = RailHelper.traverseBi(
                 entity as AbstractMinecart,
                 entity.onPos.above(),
-                RailHelper.samePositionPredicate(parent),
+                samePositionPredicate(parent),
                 5,
             )
             // this is a fix to mitigate "bouncing" when trains start moving from a stopped position
@@ -332,6 +330,15 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
                 leader.ifPresent { it.removeDominated() }
                 entity.removeDominant()
             }
+        }
+    }
+
+    private fun samePositionPredicate(entity: AbstractMinecart): BiPredicate<Direction, BlockPos> {
+        val targetRail = getRailAt(entity.onPos.above(), entity.level())
+        return BiPredicate { direction: Direction?, p ->
+            getRailAt(p, entity.level())
+                .flatMap { pos -> targetRail.map { rp -> rp == pos } }
+                .orElse(false)
         }
     }
 

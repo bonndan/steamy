@@ -49,6 +49,12 @@ class ModRecipeProvider(recipeOutput: RecipeOutput, pRegistries: HolderLookup.Pr
             .requires ( Items.LEVER)
             .unlockedBy("has_item", has(Items.FURNACE))
             .save(output)
+
+        this.shapeless(RecipeCategory.TRANSPORTATION, ModItems.SWITCH_RAIL_ITEM.get(), 1)
+            .requires ( Items.RAIL)
+            .requires ( Items.LEVER)
+            .unlockedBy("has_item", has(Items.FURNACE))
+            .save(output)
     }
 
     class Runner(output: PackOutput, lookupProvider: CompletableFuture<HolderLookup.Provider>) :

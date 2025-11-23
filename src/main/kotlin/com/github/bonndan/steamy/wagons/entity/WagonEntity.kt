@@ -19,6 +19,8 @@ import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.entity.vehicle.AbstractMinecart
 import net.minecraft.world.entity.vehicle.Minecart
+import net.minecraft.world.entity.vehicle.MinecartBehavior
+import net.minecraft.world.entity.vehicle.OldMinecartBehavior
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.GameRules
@@ -40,10 +42,6 @@ class WagonEntity(entityType: EntityType<out Minecart>, level: Level) : Minecart
 
     override fun getDominantIdAccessor(): EntityDataAccessor<Int> = DOMINANT_ID
 
-    override fun getOnPos(): BlockPos {
-        return linkingHandler.getOnPos(this as AbstractMinecart)
-    }
-
     override fun defineSynchedData(builder: SynchedEntityData.Builder) {
         super.defineSynchedData(builder)
         builder.define(DOMINANT_ID, -1)
@@ -61,14 +59,18 @@ class WagonEntity(entityType: EntityType<out Minecart>, level: Level) : Minecart
 
     override fun tick() {
 
-        linkingHandler.tickLoad()
-        this.yRot = linkingHandler.computeYaw()
-        val yrot = this.yRot
         super.tick()
-        this.yRot = yrot
+        linkingHandler.tickLoad()
         if (!level().isClientSide) {
-            linkingHandler.doChainMath()
+            linkingHandler.doChainMathForLeader()
         }
+    }
+
+    override fun getBehavior(): MinecartBehavior {
+        if (!useExperimentalMovement(this.level())) {
+            return FixedBehavior(super.behavior as OldMinecartBehavior, this)
+        }
+        return super.getBehavior()
     }
 
     protected override fun readAdditionalSaveData(valueInput: ValueInput) {

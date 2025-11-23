@@ -15,7 +15,6 @@ import net.minecraft.core.Direction
 import net.minecraft.data.PackOutput
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
-import net.minecraft.world.level.block.state.properties.RailShape
 
 
 class ModItemModelProvider(output: PackOutput) : ModelProvider(output, SteamyMod.MOD_ID) {
@@ -28,7 +27,6 @@ class ModItemModelProvider(output: PackOutput) : ModelProvider(output, SteamyMod
         itemModels.generateFlatItem(ModItems.CONDUCTORS_WRENCH.get(), ModelTemplates.FLAT_ITEM)
 
         createSwitchRail(blockModels)
-        createJunctionRail(blockModels)
     }
 
 
@@ -94,42 +92,6 @@ class ModItemModelProvider(output: PackOutput) : ModelProvider(output, SteamyMod
         )
     }
 
-
-    /**
-     * This is a copy of createPassiveRail from BlockModelGenerators with minor adjustments to fit the mod setup
-     */
-    fun createJunctionRail(blockModels: BlockModelGenerators) {
-
-        val block = ModBlocks.JUNCTION_RAIL.get()
-        val flatTemplate = ModelTemplates.RAIL_FLAT.extend().renderType("minecraft:cutout").build()
-
-        val flatModel = flatTemplate.create(
-            block,
-            TextureMapping.rail(block),
-            blockModels.modelOutput
-        )
-
-        val variant = BlockModelGenerators.plainVariant(flatModel)
-
-        blockModels.registerSimpleFlatItemModel(block)
-        blockModels.blockStateOutput
-            .accept(
-                MultiVariantGenerator.dispatch(block)
-                    .with(
-                        PropertyDispatch.initial(BlockStateProperties.RAIL_SHAPE)
-                            .select(RailShape.NORTH_SOUTH, variant)
-                            .select(RailShape.EAST_WEST, variant.with(BlockModelGenerators.Y_ROT_90))
-                            .select(RailShape.ASCENDING_EAST, variant.with(BlockModelGenerators.Y_ROT_90))
-                            .select(RailShape.ASCENDING_WEST, variant.with(BlockModelGenerators.Y_ROT_90))
-                            .select(RailShape.ASCENDING_NORTH, variant)
-                            .select(RailShape.ASCENDING_SOUTH, variant)
-                            .select(RailShape.SOUTH_EAST, variant)
-                            .select(RailShape.SOUTH_WEST, variant.with(BlockModelGenerators.Y_ROT_90))
-                            .select(RailShape.NORTH_WEST, variant.with(BlockModelGenerators.Y_ROT_180))
-                            .select(RailShape.NORTH_EAST, variant.with(BlockModelGenerators.Y_ROT_270))
-                    )
-            )
-    }
 
     companion object {
         fun getBlTx(name: String): ResourceLocation {
