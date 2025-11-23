@@ -4,8 +4,9 @@ This mod features locomotives, aka rideable furnace minecarts and cheaper regula
 
 ![logo](./project_logo.png)
 
+# Vehicles
 
-## How To...
+## Locomotives
 
 ### Build it?
 
@@ -19,6 +20,17 @@ Runs on furnace minecart fuel.
 
 Press jump (space) to increase throttle and left ctrl to decrease throttle. Otherwise, the locomotive is controlled like a
 regular minecart.
+
+# Rails
+
+## Cheaper Rails
+
+Rails can be crafted from iron ingots, logs and gravel.
+
+![rails](./rails_recipe.png)
+
+
+## Switch Rails
 
 ## License
 
