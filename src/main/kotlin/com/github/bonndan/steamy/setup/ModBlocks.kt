@@ -2,7 +2,6 @@ package com.github.bonndan.steamy.setup
 
 import com.github.bonndan.steamy.rails.JunctionRail
 import com.github.bonndan.steamy.rails.SwitchRail
-import com.github.bonndan.steamy.rails.TeeJunctionRail
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.CreativeModeTab
@@ -25,8 +24,6 @@ object ModBlocks {
 
     lateinit var SWITCH_RAIL: DeferredHolder<Block, SwitchRail>
 
-    lateinit var TEE_JUNCTION_RAIL: DeferredHolder<Block, TeeJunctionRail>
-
     lateinit var JUNCTION_RAIL: DeferredHolder<Block, JunctionRail>
 
     fun buildCreativeTab(event: BuildCreativeModeTabContentsEvent) {
@@ -39,12 +36,6 @@ object ModBlocks {
         SWITCH_RAIL = register.registerBlock(
             "switch_rail",
             { SwitchRail(it) },
-            RAIL_BLOCK_BEHAVIOUR
-        )
-
-        TEE_JUNCTION_RAIL = register.registerBlock(
-            "tee_junction_rail",
-            { TeeJunctionRail(it) },
             RAIL_BLOCK_BEHAVIOUR
         )
 

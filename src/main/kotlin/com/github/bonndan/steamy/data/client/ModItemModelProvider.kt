@@ -14,7 +14,6 @@ import net.minecraft.client.data.models.model.TextureMapping
 import net.minecraft.core.Direction
 import net.minecraft.data.PackOutput
 import net.minecraft.resources.ResourceLocation
-import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.RailShape
 
@@ -29,8 +28,7 @@ class ModItemModelProvider(output: PackOutput) : ModelProvider(output, SteamyMod
         itemModels.generateFlatItem(ModItems.CONDUCTORS_WRENCH.get(), ModelTemplates.FLAT_ITEM)
 
         createSwitchRail(blockModels)
-        createTeeJunctionRail(blockModels)
-        createPassiveRail(ModBlocks.JUNCTION_RAIL.get(), blockModels)
+        createJunctionRail(blockModels)
     }
 
 
@@ -96,61 +94,13 @@ class ModItemModelProvider(output: PackOutput) : ModelProvider(output, SteamyMod
         )
     }
 
-    /**
-     * Creates block states and models for Tee Junction Rail: off and on with all horizontal facings
-     */
-    private fun createTeeJunctionRail(generators: BlockModelGenerators) {
-
-        val block = ModBlocks.TEE_JUNCTION_RAIL.get()
-        generators.registerSimpleFlatItemModel(block)
-
-        val railTemplate = ModelTemplates.RAIL_FLAT.extend().renderType("minecraft:cutout").build()
-
-
-        val modelOn = railTemplate.create(
-            ResourceLocation.fromNamespaceAndPath(SteamyMod.MOD_ID, "block/tee_junction_rail_on"),
-            TextureMapping.rail(getBlTx("tee_junction_rail_on")),
-            generators.modelOutput
-        )
-
-        val modelOff = railTemplate.create(
-            ResourceLocation.fromNamespaceAndPath(SteamyMod.MOD_ID, "block/tee_junction_rail_off"),
-            TextureMapping.rail(getBlTx("tee_junction_rail_off")),
-            generators.modelOutput
-        )
-
-        // Use two properties: POWERED and HORIZONTAL_FACING
-        val dispatch = PropertyDispatch.initial(
-            BlockStateProperties.POWERED,
-            BlockStateProperties.HORIZONTAL_FACING
-        )
-
-        for (powered in listOf(true, false)) {
-            val model = if (powered) modelOn else modelOff
-
-            for (facing in Direction.Plane.HORIZONTAL) {
-                val rotation = when (facing) {
-                    Direction.NORTH -> BlockModelGenerators.Y_ROT_180
-                    Direction.EAST -> BlockModelGenerators.Y_ROT_270
-                    Direction.WEST -> BlockModelGenerators.Y_ROT_90
-                    else -> BlockModelGenerators.NOP
-                }
-
-                dispatch.select(powered, facing, BlockModelGenerators.plainVariant(model).with(rotation))
-            }
-        }
-
-        generators.blockStateOutput.accept(
-            MultiVariantGenerator.dispatch(block).with(dispatch)
-        )
-    }
-
 
     /**
      * This is a copy of createPassiveRail from BlockModelGenerators with minor adjustments to fit the mod setup
      */
-    fun createPassiveRail(block: Block, blockModels: BlockModelGenerators) {
+    fun createJunctionRail(blockModels: BlockModelGenerators) {
 
+        val block = ModBlocks.JUNCTION_RAIL.get()
         val flatTemplate = ModelTemplates.RAIL_FLAT.extend().renderType("minecraft:cutout").build()
 
         val flatModel = flatTemplate.create(

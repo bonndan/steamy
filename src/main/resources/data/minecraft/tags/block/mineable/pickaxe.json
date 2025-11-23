@@ -2,7 +2,6 @@
   "replace": false,
   "values": [
     "steamy:switch_rail",
-    "steamy:tee_junction_rail",
     "steamy:junction_rail"
   ]
 }

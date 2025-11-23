@@ -3,7 +3,6 @@ package com.github.bonndan.steamy.setup
 import com.github.bonndan.steamy.wagons.item.LocomotiveItem
 import com.github.bonndan.steamy.setup.ModBlocks.JUNCTION_RAIL
 import com.github.bonndan.steamy.setup.ModBlocks.SWITCH_RAIL
-import com.github.bonndan.steamy.setup.ModBlocks.TEE_JUNCTION_RAIL
 import com.github.bonndan.steamy.train.SpringItem
 import com.github.bonndan.steamy.train.WrenchItem
 import com.github.bonndan.steamy.wagons.item.WagonItem
@@ -28,7 +27,6 @@ object ModItems {
 
     lateinit var SWITCH_RAIL_ITEM: DeferredItem<BlockItem>
     lateinit var JUNCTION_RAIL_ITEM: DeferredItem<BlockItem>
-    lateinit var TEE_JUNCTION_RAIL_ITEM: DeferredItem<BlockItem>
 
     fun register(itemRegister: DeferredRegister.Items) {
 
@@ -69,19 +67,12 @@ object ModItems {
             defaultItemProperties()
         )
 
-        TEE_JUNCTION_RAIL_ITEM = itemRegister.registerItem(
-            "tee_junction_rail",
-            { properties -> BlockItem(TEE_JUNCTION_RAIL.get(), properties) },
-            defaultItemProperties()
-        )
-
         PRIVATE_TAB_REGISTRY.putInsert(CreativeModeTabs.TOOLS_AND_UTILITIES, LOCOMOTIVE)
         PRIVATE_TAB_REGISTRY.putInsert(CreativeModeTabs.TOOLS_AND_UTILITIES, WAGON)
         PRIVATE_TAB_REGISTRY.putInsert(CreativeModeTabs.TOOLS_AND_UTILITIES, SPRING)
         PRIVATE_TAB_REGISTRY.putInsert(CreativeModeTabs.TOOLS_AND_UTILITIES, CONDUCTORS_WRENCH)
         PRIVATE_TAB_REGISTRY.putInsert(CreativeModeTabs.TOOLS_AND_UTILITIES, SWITCH_RAIL_ITEM)
         PRIVATE_TAB_REGISTRY.putInsert(CreativeModeTabs.TOOLS_AND_UTILITIES, JUNCTION_RAIL_ITEM)
-        PRIVATE_TAB_REGISTRY.putInsert(CreativeModeTabs.TOOLS_AND_UTILITIES, TEE_JUNCTION_RAIL_ITEM)
     }
 
     fun buildCreativeTab(event: BuildCreativeModeTabContentsEvent) {
