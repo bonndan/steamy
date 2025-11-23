@@ -32,6 +32,10 @@ Rails can be crafted from iron ingots, logs and gravel.
 
 ## Switch Rails
 
+Switch rails can be flipped using redstone, preferably with a lever.
+
+![switch](./switch_rail.png)
+
 ## License
 
 ### Source Code / java files
