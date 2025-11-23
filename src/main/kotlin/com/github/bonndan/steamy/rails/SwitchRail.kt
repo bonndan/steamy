@@ -5,14 +5,8 @@ import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.Direction.Axis
-import net.minecraft.tags.ItemTags
 import net.minecraft.util.StringRepresentable
-import net.minecraft.world.InteractionHand
-import net.minecraft.world.InteractionResult
-import net.minecraft.world.entity.Pose
-import net.minecraft.world.entity.player.Player
 import net.minecraft.world.entity.vehicle.AbstractMinecart
-import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.BlockPlaceContext
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
@@ -26,10 +20,8 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.BlockStateProperties.RAIL_SHAPE
 import net.minecraft.world.level.block.state.properties.EnumProperty
 import net.minecraft.world.level.block.state.properties.RailShape
-import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.level.redstone.Orientation
-import net.minecraft.world.phys.BlockHitResult
 
 class SwitchRail(pProperties: Properties) : MultiShapeRail(pProperties) {
 
@@ -52,17 +44,15 @@ class SwitchRail(pProperties: Properties) : MultiShapeRail(pProperties) {
 
     override fun getStateForPlacement(pContext: BlockPlaceContext): BlockState {
 
-        val fluidstate: FluidState = pContext.level.getFluidState(pContext.clickedPos)
-        val flag = fluidstate.type === Fluids.WATER
-        val blockstate: BlockState = super.defaultBlockState()
+        val isWaterlogged = pContext.level.getFluidState(pContext.clickedPos).type === Fluids.WATER
 
-        return blockstate
+        return super.defaultBlockState()
             .setValue(
                 RAIL_SHAPE,
                 if (pContext.horizontalDirection.axis === Axis.X) RailShape.EAST_WEST else RailShape.NORTH_SOUTH
             )
             .setValue(FACING, pContext.horizontalDirection)
-            .setValue(WATERLOGGED, flag)
+            .setValue(WATERLOGGED, isWaterlogged)
             .setValue(SWITCH_TYPE, SwitchType.RIGHT)
     }
 
