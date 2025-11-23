@@ -5,9 +5,11 @@ import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.Direction.Axis
+import net.minecraft.tags.ItemTags
 import net.minecraft.util.StringRepresentable
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
+import net.minecraft.world.entity.Pose
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.entity.vehicle.AbstractMinecart
 import net.minecraft.world.item.ItemStack
@@ -124,32 +126,20 @@ class SwitchRail(pProperties: Properties) : MultiShapeRail(pProperties) {
     }
 
     public override fun mirror(pState: BlockState, pMirror: Mirror): BlockState {
+        
         if (pMirror == Mirror.LEFT_RIGHT) {
             return pState.setValue(
                 SWITCH_TYPE,
                 pState.getValue(SWITCH_TYPE).opposite()
             )
-        } else if (pMirror == Mirror.FRONT_BACK) return rotate(
-            pState,
-            pMirror.getRotation(pState.getValue(FACING))
-        )
-        return pState
-    }
-
-    override fun useItemOn(
-        p_316304_: ItemStack,
-        pState: BlockState,
-        pLevel: Level,
-        pPos: BlockPos,
-        pPlayer: Player,
-        pHand: InteractionHand,
-        p_316140_: BlockHitResult
-    ): InteractionResult {
-        if (isCrouchingOrHasWrench(pPlayer, pHand)) {
-            pLevel.setBlockAndUpdate(pPos, this.mirror(pState, Mirror.LEFT_RIGHT))
-            return InteractionResult.SUCCESS
+        } 
+        
+        if (pMirror == Mirror.FRONT_BACK) {
+            val pRot = pMirror.getRotation(pState.getValue(FACING))
+            return rotate(pState, pRot)
         }
-        return InteractionResult.PASS
+        
+        return pState
     }
 
     override fun createBlockStateDefinition(pBuilder: StateDefinition.Builder<Block?, BlockState?>) {

@@ -1,5 +1,7 @@
 package com.github.bonndan.steamy.train
 
+import com.github.bonndan.steamy.rails.MultiShapeRail.Companion.FACING
+import com.github.bonndan.steamy.rails.SwitchRail
 import net.minecraft.network.chat.Component
 import net.minecraft.tags.BlockTags
 import net.minecraft.world.InteractionResult
@@ -8,7 +10,9 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.TooltipFlag
 import net.minecraft.world.item.component.TooltipDisplay
 import net.minecraft.world.item.context.UseOnContext
+import net.minecraft.world.level.block.Mirror
 import net.minecraft.world.level.block.RailBlock
+import net.minecraft.world.level.block.Rotation
 import net.minecraft.world.level.block.state.properties.RailShape
 import java.util.Map
 import java.util.function.Consumer
@@ -31,23 +35,47 @@ class WrenchItem(pProperties: Properties) : Item(pProperties) {
 
     override fun useOn(pContext: UseOnContext): InteractionResult {
 
-        val state = pContext.level.getBlockState(pContext.clickedPos)
+        val blockState = pContext.level.getBlockState(pContext.clickedPos)
 
-        if ( state.`is`(BlockTags.RAILS)) {
-            val shape = state.getValue(RailBlock.SHAPE)
+        //mirror the switch depending on view direction
+        val pPlayer = pContext.player
+        if (pPlayer != null && blockState.block is SwitchRail) {
+
+            val switchRail = blockState.block as SwitchRail
+
+            val railDirection = blockState.getValue(FACING)
+            val isViewedAlongFacing =
+                pPlayer.nearestViewDirection == railDirection || pPlayer.nearestViewDirection == railDirection.opposite
+
+            if (!pContext.level.isClientSide()) {
+
+                val newState = if (isViewedAlongFacing) {
+                    switchRail.mirror(blockState, Mirror.LEFT_RIGHT)
+                } else {
+                    switchRail.rotate(blockState, Rotation.CLOCKWISE_90)
+                }
+
+                pContext.level.setBlockAndUpdate(pContext.clickedPos, newState)
+            }
+
+            return InteractionResult.SUCCESS
+        }
+
+        if (blockState.`is`(BlockTags.RAILS)) {
+            val shape = blockState.getValue(RailBlock.SHAPE)
             if (shape.isSlope) {
                 return InteractionResult.PASS
             }
             if (!pContext.level.isClientSide()) {
                 pContext.level.setBlock(
                     pContext.clickedPos,
-                    state.setValue<RailShape, RailShape>(RailBlock.SHAPE, nextShapes.getOrDefault(shape, shape)), 2
+                    blockState.setValue<RailShape, RailShape>(RailBlock.SHAPE, nextShapes.getOrDefault(shape, shape)), 2
                 )
             }
             return InteractionResult.SUCCESS
-        } else {
-            return super.useOn(pContext)
         }
+
+        return super.useOn(pContext)
     }
 
     companion object {
