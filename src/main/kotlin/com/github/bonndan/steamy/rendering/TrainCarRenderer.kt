@@ -13,8 +13,6 @@ import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.entity.vehicle.AbstractMinecart
 import net.minecraft.world.phys.Vec3
-import net.neoforged.neoforge.client.event.RenderNameTagEvent.DoRender
-import net.neoforged.neoforge.common.NeoForge
 import kotlin.math.asin
 import kotlin.math.atan2
 import kotlin.math.ceil
@@ -50,31 +48,24 @@ open class TrainCarRenderer<T>(
 
         if (car.getLeader().isPresent) {
 
-            var from = if (renderState.isNewRender) renderState.renderPos else renderState.posOnRail
+            var frontOfFollower = if (renderState.isNewRender) renderState.renderPos else renderState.posOnRail
             if (renderState.frontPos != null) {
-                from = renderState.frontPos
-            }
-            if (renderState.frontPos!= null) {
-                from = renderState.frontPos!!
+                frontOfFollower = renderState.frontPos
             }
 
             val leader = car.getLeader().get()
             val leaderCart = leader as AbstractMinecart
-            val carPos = leaderCart.getPosition(renderState.partialTick)
-            val to =  carPos
+            var backOfLeader = leaderCart.getPosition(renderState.partialTick)
 
-            if (from == null || to == null) return
+
+            if (frontOfFollower == null || backOfLeader == null) return
             poseStack.pushPose()
-            poseStack.translate(calculateChainOffset(carPos, to))
-            renderChain(from, to, poseStack, bufferSource, packedLight)
+
+            renderChain(frontOfFollower, backOfLeader, poseStack, bufferSource, packedLight)
             poseStack.popPose()
         }
     }
 
-    private fun calculateChainOffset(
-        carPos: Vec3,
-        to: Vec3
-    ): Vec3 = carPos.subtract(to).add(0.0, 0.3, 0.0)
 
     private fun renderChain(
         from: Vec3,
@@ -83,6 +74,7 @@ open class TrainCarRenderer<T>(
         buffer: MultiBufferSource,
         packedLight: Int
     ) {
+        poseStack.translate(Vec3(0.0, 0.3, 0.0))
         poseStack.pushPose()
 
         val vec: Vec3 = from.vectorTo(to)
@@ -109,35 +101,6 @@ open class TrainCarRenderer<T>(
 
         poseStack.popPose()
         poseStack.popPose()
-    }
-
-    private fun renderNameTag(
-        renderState: TrainCarRenderState<T>,
-        poseStack: PoseStack,
-        bufferSource: MultiBufferSource,
-        packedLight: Int
-    ) {
-        val nameTag = renderState.nameTag ?: return
-
-        val event = DoRender(
-            renderState,
-            nameTag,
-            this,
-            poseStack,
-            bufferSource,
-            packedLight,
-            renderState.partialTick
-        )
-
-        if (!NeoForge.EVENT_BUS.post(event).isCanceled()) {
-            this.renderNameTag(
-                renderState,
-                nameTag,
-                poseStack,
-                bufferSource,
-                packedLight
-            )
-        }
     }
 
     override fun createRenderState(): TrainCarRenderState<T> {

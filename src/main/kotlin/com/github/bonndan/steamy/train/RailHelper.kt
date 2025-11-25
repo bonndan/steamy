@@ -5,7 +5,6 @@ import com.google.common.collect.Maps
 import net.minecraft.Util
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
-import net.minecraft.core.Vec3i
 import net.minecraft.world.entity.vehicle.AbstractMinecart
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.BaseRailBlock
@@ -163,11 +162,6 @@ object RailHelper {
                     RailDir(Direction.NORTH), RailDir(Direction.EAST)
                 )
             })
-
-    fun getShape(pos: BlockPos, level: Level): RailShape {
-        val state: BlockState = level.getBlockState(pos)
-        return (state.block as BaseRailBlock).getRailDirection(state, level, pos, null)
-    }
 
     fun getRailAt(
         inpos: BlockPos,

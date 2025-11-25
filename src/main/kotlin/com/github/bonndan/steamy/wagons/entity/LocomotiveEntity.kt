@@ -238,9 +238,7 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
                 .count()
                 .toInt()
             this.spawnAtLocation(serverLevel, stack)
-            for (j in 0..<chains) {
-                spawnChain()
-            }
+            (0..<chains).forEach { _ -> spawnChain() }
         }
     }
 

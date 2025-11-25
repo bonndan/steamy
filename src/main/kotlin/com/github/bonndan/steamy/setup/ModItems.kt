@@ -52,7 +52,6 @@ object ModItems {
             defaultItemProperties(1)
         )
 
-        // BlockItem-Registrierung erfolgt nach Block-Registrierung
         SWITCH_RAIL_ITEM = itemRegister.registerItem(
             "switch_rail",
             { properties -> BlockItem(SWITCH_RAIL.get(), properties) },
