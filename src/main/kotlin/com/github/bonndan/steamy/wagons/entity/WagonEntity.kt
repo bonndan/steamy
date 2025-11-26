@@ -5,7 +5,6 @@ import com.github.bonndan.steamy.setup.ModItems.CONDUCTORS_WRENCH
 import com.github.bonndan.steamy.setup.ModItems.SPRING
 import com.github.bonndan.steamy.train.LinkableCart
 import com.github.bonndan.steamy.train.LinkingHandler
-import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.component.DataComponents
 import net.minecraft.network.syncher.EntityDataAccessor
@@ -17,7 +16,6 @@ import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.player.Player
-import net.minecraft.world.entity.vehicle.AbstractMinecart
 import net.minecraft.world.entity.vehicle.Minecart
 import net.minecraft.world.entity.vehicle.MinecartBehavior
 import net.minecraft.world.entity.vehicle.OldMinecartBehavior

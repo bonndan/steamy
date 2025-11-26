@@ -1,12 +1,9 @@
 package com.github.bonndan.steamy.train
 
-import com.github.bonndan.steamy.train.RailHelper.getOtherExit
 import com.github.bonndan.steamy.train.RailHelper.getRailAt
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
-import net.minecraft.core.Vec3i
 import net.minecraft.network.syncher.EntityDataAccessor
-import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.vehicle.AbstractMinecart
 import net.minecraft.world.level.Level
@@ -79,7 +76,6 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
         entity.getEntityData()
             .set(entity.getDominatedIdAccessor(), follower.map { obj -> (obj as AbstractMinecart).id }.orElse(-1))
 
-        entity.yRot = computeYaw()
     }
 
     fun readAdditionalSaveData(input: ValueInput) {
@@ -207,71 +203,6 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
             hordir = r.first
         }
         return hordir
-    }
-
-    fun computeYaw(): Float {
-        val yrot = entity.yRot
-        // if the car is part of a train, enforce that direction instead
-        val railShape = getRailShape()
-        if (follower.isPresent && railShape.isPresent) {
-            val pair = RailHelper.traverseBi(
-                entity,
-                entity.onPos.above(),
-                samePositionPredicate(follower.get() as AbstractMinecart),
-                5,
-            )
-            if (pair.isPresent) {
-                val yaw =
-                    yawHelper(pair.get(), entity as AbstractMinecart, follower.get() as Entity)
-                val directionOpt = getDirectionToOtherExit(yaw, railShape.get())
-                if (directionOpt.isPresent) {
-                    val direction: Vec3i = directionOpt.get()
-                    return ((Mth.atan2(
-                        direction.z.toDouble(),
-                        direction.x.toDouble()
-                    ) * 180.0 / Math.PI).toFloat() + 90)
-                }
-            }
-        } else if (leader.isPresent && railShape.isPresent) {
-            val r = RailHelper.traverseBi(
-                entity,
-                entity.onPos.above(),
-                samePositionPredicate(leader.get() as AbstractMinecart),
-                5,
-            )
-            if (r.isPresent) {
-                val hordir = yawHelper(r.get(), entity, leader.get() as AbstractMinecart)
-                val directionOpt = getDirectionToOtherExit(hordir, railShape.get())
-                if (directionOpt.isPresent) {
-                    val direction: Vec3i = directionOpt.get()
-                    return ((Mth.atan2(
-                        -direction.z.toDouble(),
-                        -direction.x.toDouble()
-                    ) * 180.0 / Math.PI).toFloat() + 90)
-                }
-            }
-        } else {
-            val dx = entity.xo - entity.x
-            val dz = entity.zo - entity.z
-            if (dx * dx + dz * dz > 0.001) {
-                return ((Mth.atan2(dz, dx) * 180.0 / Math.PI).toFloat() + 90)
-            }
-        }
-
-        return yrot
-    }
-
-    fun getDirectionToOtherExit(direction: Direction, shape: RailShape): Optional<Vec3i> {
-        return getOtherExit(direction, shape)
-            .map { other -> getNormal(direction).subtract(getNormal(other.horizontal)) }
-    }
-
-    private fun getNormal(dir: Direction): Vec3i {
-        return Vec3i(dir.stepX, dir.stepY, dir.stepZ)
-    }
-
-    private fun fixUtil(mag: Double): Double {
-        return (if (mag < 0) 0 else 1).toDouble()
     }
 
 

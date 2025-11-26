@@ -65,38 +65,26 @@ class SwitchRail(pProperties: Properties) : MultiShapeRail(pProperties) {
         pos: BlockPos,
         cart: AbstractMinecart?
     ): RailShape {
-
-        //straight forward in the direction of placement, never switches
         val facingDirection: Direction = state.getValue(FACING)
         val switchType = state.getValue(SWITCH_TYPE)
         val powered = state.getValue(BlockStateProperties.POWERED)
-        val cartDirection = cart?.motionDirection
 
-        return createRailShape(
-            from = facingDirection,
-            to = getCurrentOutDirection(facingDirection, switchType, powered, cartDirection)
-        )
-    }
-
-    private fun getCurrentOutDirection(
-        facingDirection: Direction,
-        switchType: SwitchType,
-        powered: Boolean,
-        cartDirection: Direction?
-    ): Direction {
-
-        //straight forward through the switch
-        val unpoweredDirection = facingDirection.opposite
-
-        if (cartDirection == facingDirection) {
-            //entering from the back, always go straight
-            return unpoweredDirection
+        if (powered) {
+            val exitDirection =
+                if (switchType == SwitchType.RIGHT) facingDirection.counterClockWise else facingDirection.clockWise
+            return createRailShape(from = facingDirection, to = exitDirection)
         }
 
-        val poweredDirection =
-            if (switchType == SwitchType.RIGHT) facingDirection.counterClockWise else facingDirection.clockWise
+        val cartDirection = cart?.motionDirection
+        val comingFromSide =
+            cartDirection != null && (cartDirection.clockWise == facingDirection || cartDirection.counterClockWise == facingDirection)
+        if (!comingFromSide) {
+            return createRailShape(from = facingDirection, to = facingDirection.opposite)
+        }
 
-        return if (powered) poweredDirection else unpoweredDirection
+        val exitDirection = if (switchType == SwitchType.RIGHT) facingDirection else facingDirection.opposite
+        val shape = createRailShape(from = cartDirection.opposite, to = exitDirection)
+        return shape
     }
 
     override fun getVanillaRailShapeFromDirection(
@@ -119,19 +107,19 @@ class SwitchRail(pProperties: Properties) : MultiShapeRail(pProperties) {
     }
 
     public override fun mirror(pState: BlockState, pMirror: Mirror): BlockState {
-        
+
         if (pMirror == Mirror.LEFT_RIGHT) {
             return pState.setValue(
                 SWITCH_TYPE,
                 pState.getValue(SWITCH_TYPE).opposite()
             )
-        } 
-        
+        }
+
         if (pMirror == Mirror.FRONT_BACK) {
             val pRot = pMirror.getRotation(pState.getValue(FACING))
             return rotate(pState, pRot)
         }
-        
+
         return pState
     }
 

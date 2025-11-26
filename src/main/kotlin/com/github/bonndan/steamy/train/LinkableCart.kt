@@ -6,17 +6,12 @@ import com.github.bonndan.steamy.wagons.entity.LocomotiveEntity
 import net.minecraft.network.chat.Component
 import net.minecraft.network.syncher.EntityDataAccessor
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.util.Mth
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.entity.vehicle.AbstractMinecart
-import net.minecraft.world.entity.vehicle.OldMinecartBehavior
 import net.minecraft.world.item.ItemStack
-import net.minecraft.world.phys.Vec3
 import java.util.*
 import java.util.function.Function
 import java.util.stream.Stream
-import kotlin.math.atan
-import kotlin.math.atan2
 
 /**
  * Override
@@ -277,10 +272,6 @@ interface LinkableCart<T> where T : AbstractMinecart, T : LinkableCart<T> {
         linkingHandler.follower = temp
     }
 
-    fun <U> applyWithAll(function: Function<LinkableCart<T>, U?>): Stream<U?> {
-        return getTrain().getHead().applyWithDominated<U?>(function)
-    }
-
     fun <U> applyWithDominant(function: Function<LinkableCart<T>, U?>): Stream<U?> {
         val ofThis = Stream.of<U?>(function.apply(this))
 
@@ -310,51 +301,4 @@ interface LinkableCart<T> where T : AbstractMinecart, T : LinkableCart<T> {
         return Pair(pair.second, pair.first)
     }
 
-    /**
-     * This was the getPosOffs method in LinkableCart
-     */
-    fun calcTrackDirectionBasedValues(partialTicks: Float, behavior: OldMinecartBehavior): TrackDirectionValues? {
-
-        val linkable = this
-        val car = this as AbstractMinecart
-        val pos: Vec3 = car.getPosition(partialTicks) ?: return null
-
-        val dx = Mth.lerp(partialTicks.toDouble(), car.xo, car.x)
-        val dy = Mth.lerp(partialTicks.toDouble(), car.yo, car.y)
-        val dz = Mth.lerp(partialTicks.toDouble(), car.zo, car.z)
-        val forwardDir = behavior.getPosOffs(dx, dy, dz, 0.3) ?: pos
-        val backDir = behavior.getPosOffs(dx, dy, dz, -0.3) ?: pos
-
-
-        val centre = Vec3(pos.x, (forwardDir.y + backDir.y) / 2.0, pos.z)
-        val offset = centre.subtract(dx, dy, dz)
-
-
-        var trackDirection = forwardDir.subtract(backDir)
-        var pitch = Mth.lerp(partialTicks, car.xRotO, car.xRot)
-        var yRot: Float = car.yRot
-        if (trackDirection.length() != 0.0) {
-            trackDirection = trackDirection.normalize()
-            yRot = (atan2(-trackDirection.z, -trackDirection.x) * 180.0 / Math.PI).toFloat()
-            pitch = (atan(-trackDirection.y) * 73.0).toFloat()
-        }
-
-        val chainCentre = centre.add(0.0, .22, 0.0)
-
-        return TrackDirectionValues(
-            pitch = pitch,
-            yRot = yRot,
-            frontPos = chainCentre.add(trackDirection.scale(.3)),
-            backPos = chainCentre.add(trackDirection.scale(-.3)),
-            translationOffset = offset
-        )
-    }
-
-    data class TrackDirectionValues(
-        val pitch: Float,
-        val yRot: Float,
-        val frontPos: Vec3,
-        val backPos: Vec3,
-        val translationOffset: Vec3
-    )
 }
