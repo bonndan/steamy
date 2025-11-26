@@ -1,12 +1,14 @@
 package com.github.bonndan.steamy.rails
 
 import com.github.bonndan.steamy.rails.RailShapeUtil.createRailShape
+import com.github.bonndan.steamy.setup.ModItems
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.Direction.Axis
 import net.minecraft.util.StringRepresentable
 import net.minecraft.world.entity.vehicle.AbstractMinecart
+import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.BlockPlaceContext
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
@@ -22,6 +24,7 @@ import net.minecraft.world.level.block.state.properties.EnumProperty
 import net.minecraft.world.level.block.state.properties.RailShape
 import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.level.redstone.Orientation
+import net.minecraft.world.level.storage.loot.LootParams
 
 class SwitchRail(pProperties: Properties) : MultiShapeRail(pProperties) {
 
@@ -157,6 +160,15 @@ class SwitchRail(pProperties: Properties) : MultiShapeRail(pProperties) {
 
     override fun canConnectRedstone(state: BlockState, world: BlockGetter, pos: BlockPos, side: Direction?): Boolean {
         return true
+    }
+
+    override fun getDrops(state: BlockState, builder: LootParams.Builder): List<ItemStack> {
+        // Always drop the switch rail item when broken
+        return listOf(ItemStack(ModItems.SWITCH_RAIL_ITEM.get()))
+    }
+
+    override fun asItem(): net.minecraft.world.item.Item {
+        return ModItems.SWITCH_RAIL_ITEM.get()
     }
 
     companion object {
