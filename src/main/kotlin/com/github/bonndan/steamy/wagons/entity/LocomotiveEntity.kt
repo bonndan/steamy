@@ -277,13 +277,6 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
         return superApplyNaturalSlowdown(speed)
     }
 
-    override fun getBehavior(): MinecartBehavior {
-        if (!useExperimentalMovement(this.level())) {
-            return FixedBehavior(super.getBehavior() as OldMinecartBehavior, this)
-        }
-        return super.getBehavior()
-    }
-
     private fun hasActiveThrottle() =
         hasFuel() && this.firstPassenger is ServerPlayer && getThrottle() != ZERO_SPEED
 

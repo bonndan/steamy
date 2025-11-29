@@ -42,6 +42,8 @@ open class TrainCarRenderer<T>(
 
         super.render(renderState, poseStack, bufferSource, packedLight)
 
+        //TODO fix rotation flipping by comparing yrot against motion direction (vectors.dotproduct < 0)
+        // and adjusting front and back positions accordingly
 
         //render chain
         val car: LinkableCart<T> = renderState.trainCar ?: return

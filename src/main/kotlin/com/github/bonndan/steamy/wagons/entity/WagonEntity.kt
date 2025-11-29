@@ -63,13 +63,6 @@ class WagonEntity(entityType: EntityType<out Minecart>, level: Level) : Minecart
         }
     }
 
-    override fun getBehavior(): MinecartBehavior {
-        if (!useExperimentalMovement(this.level())) {
-            return FixedBehavior(super.behavior as OldMinecartBehavior, this)
-        }
-        return super.getBehavior()
-    }
-
     protected override fun readAdditionalSaveData(valueInput: ValueInput) {
         super.readAdditionalSaveData(valueInput)
         linkingHandler.readAdditionalSaveData(valueInput)

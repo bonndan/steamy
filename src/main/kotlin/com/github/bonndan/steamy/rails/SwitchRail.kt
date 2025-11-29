@@ -2,6 +2,7 @@ package com.github.bonndan.steamy.rails
 
 import com.github.bonndan.steamy.rails.RailShapeUtil.createRailShape
 import com.github.bonndan.steamy.setup.ModItems
+import com.github.bonndan.steamy.wagons.entity.MotionSupport.getCartDirection
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -97,14 +98,6 @@ class SwitchRail(pProperties: Properties) : MultiShapeRail(pProperties) {
         }
 
         return straight
-    }
-
-    private fun getCartDirection(cart: AbstractMinecart): Direction {
-
-        val diff = Vec3(cart.x - cart.xo, 0.0, cart.z - cart.zo)
-        val horizontalDirection = Direction.getNearest(diff.normalize().x.toInt(), 0, diff.normalize().z.toInt(), null)
-
-        return horizontalDirection?: cart.motionDirection
     }
 
     override fun getVanillaRailShapeFromDirection(
