@@ -5,7 +5,6 @@ import com.github.bonndan.steamy.setup.ModItems.CONDUCTORS_WRENCH
 import com.github.bonndan.steamy.setup.ModItems.SPRING
 import com.github.bonndan.steamy.train.LinkableCart
 import com.github.bonndan.steamy.train.LinkingHandler
-import net.minecraft.core.Direction
 import net.minecraft.core.component.DataComponents
 import net.minecraft.network.syncher.EntityDataAccessor
 import net.minecraft.network.syncher.EntityDataSerializers.INT
@@ -85,16 +84,6 @@ class WagonEntity(entityType: EntityType<out Minecart>, level: Level) : Minecart
         super.onSyncedDataUpdated(key)
         linkingHandler.onSyncedDataUpdated(key)
     }
-
-    // force render since we delegate rendering to the head of the train
-    override fun shouldRender(pX: Double, pY: Double, pZ: Double): Boolean {
-        return true
-    }
-
-    override fun getMotionDirection(): Direction {
-        return Direction.fromYRot((this.yRot).toDouble())
-    }
-
 
     override fun interact(player: Player, hand: InteractionHand): InteractionResult {
 

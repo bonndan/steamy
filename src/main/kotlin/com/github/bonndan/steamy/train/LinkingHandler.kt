@@ -191,21 +191,6 @@ class LinkingHandler<T>(private val entity: T) where T : AbstractMinecart, T : L
     }
 
 
-    private fun yawHelper(r: Pair<Direction, Int>, minecart: AbstractMinecart, entity: Entity): Direction {
-        var hordir: Direction? = null
-        if (r.second == 0) {
-            val dirvec = Vec3(entity.xo - minecart.xo, 0.0, entity.zo - minecart.zo)
-            hordir =
-                Direction.getNearest(dirvec.normalize().x.toInt(), 0, dirvec.normalize().z.toInt(), null) // may fail
-        }
-        // if still null
-        if (hordir == null) {
-            hordir = r.first
-        }
-        return hordir
-    }
-
-
     fun doChainMathForLeader() {
         leader.ifPresent { parent ->
 
