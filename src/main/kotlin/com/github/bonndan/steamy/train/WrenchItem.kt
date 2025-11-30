@@ -5,6 +5,7 @@ import com.github.bonndan.steamy.rails.SwitchRail
 import net.minecraft.network.chat.Component
 import net.minecraft.tags.BlockTags
 import net.minecraft.world.InteractionResult
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.TooltipFlag
@@ -13,6 +14,7 @@ import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.block.Mirror
 import net.minecraft.world.level.block.RailBlock
 import net.minecraft.world.level.block.Rotation
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.RailShape
 import java.util.Map
 import java.util.function.Consumer
@@ -37,28 +39,10 @@ class WrenchItem(pProperties: Properties) : Item(pProperties) {
 
         val blockState = pContext.level.getBlockState(pContext.clickedPos)
 
-        //mirror the switch depending on view direction
+
         val pPlayer = pContext.player
         if (pPlayer != null && blockState.block is SwitchRail) {
-
-            val switchRail = blockState.block as SwitchRail
-
-            val railDirection = blockState.getValue(FACING)
-            val isViewedAlongFacing =
-                pPlayer.nearestViewDirection == railDirection || pPlayer.nearestViewDirection == railDirection.opposite
-
-            if (!pContext.level.isClientSide()) {
-
-                val newState = if (isViewedAlongFacing) {
-                    switchRail.mirror(blockState, Mirror.LEFT_RIGHT)
-                } else {
-                    switchRail.rotate(blockState, Rotation.CLOCKWISE_90)
-                }
-
-                pContext.level.setBlockAndUpdate(pContext.clickedPos, newState)
-            }
-
-            return InteractionResult.SUCCESS
+            return handleSwitchRail(blockState, pPlayer, pContext)
         }
 
         if (blockState.`is`(BlockTags.RAILS)) {
@@ -76,6 +60,35 @@ class WrenchItem(pProperties: Properties) : Item(pProperties) {
         }
 
         return super.useOn(pContext)
+    }
+
+    /**
+     * mirror the switch depending on view direction
+     */
+    private fun handleSwitchRail(
+        blockState: BlockState,
+        pPlayer: Player,
+        pContext: UseOnContext
+    ): InteractionResult.Success {
+
+        val switchRail = blockState.block as SwitchRail
+
+        val railDirection = blockState.getValue(FACING)
+        val isViewedAlongFacing =
+            pPlayer.nearestViewDirection == railDirection || pPlayer.nearestViewDirection == railDirection.opposite
+
+        if (!pContext.level.isClientSide()) {
+
+            val newState = if (isViewedAlongFacing) {
+                switchRail.mirror(blockState, Mirror.LEFT_RIGHT)
+            } else {
+                switchRail.rotate(blockState, Rotation.CLOCKWISE_90)
+            }
+
+            pContext.level.setBlockAndUpdate(pContext.clickedPos, newState)
+        }
+
+        return InteractionResult.SUCCESS
     }
 
     companion object {

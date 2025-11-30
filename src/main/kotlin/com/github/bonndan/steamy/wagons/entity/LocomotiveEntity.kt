@@ -131,7 +131,7 @@ class LocomotiveEntity(entityType: EntityType<out MinecartFurnace>, level: Level
         val isClientSideOrStartRiding = this.level().isClientSide || (!usesTrainTool && player.startRiding(this))
 
         if (isNotSecondary && isNotVehicle && !usesTrainTool && isClientSideOrStartRiding) {
-            // TODO this.playerRotationOffset = this.rotationOffset
+
             if (!this.level().isClientSide) {
                 return (if (player.startRiding(this)) InteractionResult.CONSUME else InteractionResult.PASS) as InteractionResult
             } else {

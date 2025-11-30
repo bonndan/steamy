@@ -50,6 +50,18 @@ class ModRecipeProvider(recipeOutput: RecipeOutput, pRegistries: HolderLookup.Pr
             .unlockedBy("has_item", has(Items.FURNACE))
             .save(output)
 
+        this.shapeless(RecipeCategory.TRANSPORTATION, ModItems.WAGON.get(), 1)
+            .requires ( Items.MINECART)
+            .requires ( Items.LEVER)
+            .unlockedBy("has_item", has(Items.FURNACE))
+            .save(output)
+
+        this.shapeless(RecipeCategory.TRANSPORTATION, ModItems.CHEST_WAGON.get(), 1)
+            .requires ( Items.CHEST_MINECART)
+            .requires ( Items.LEVER)
+            .unlockedBy("has_item", has(Items.FURNACE))
+            .save(output)
+
         this.shapeless(RecipeCategory.TRANSPORTATION, ModItems.SWITCH_RAIL_ITEM.get(), 1)
             .requires ( Items.RAIL)
             .requires ( Items.LEVER)

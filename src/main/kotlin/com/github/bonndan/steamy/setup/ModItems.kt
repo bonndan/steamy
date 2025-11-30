@@ -3,6 +3,7 @@ package com.github.bonndan.steamy.setup
 import com.github.bonndan.steamy.setup.ModBlocks.SWITCH_RAIL
 import com.github.bonndan.steamy.train.SpringItem
 import com.github.bonndan.steamy.train.WrenchItem
+import com.github.bonndan.steamy.wagons.item.ChestWagonItem
 import com.github.bonndan.steamy.wagons.item.LocomotiveItem
 import com.github.bonndan.steamy.wagons.item.WagonItem
 import net.minecraft.resources.ResourceKey
@@ -21,6 +22,8 @@ object ModItems {
 
     lateinit var LOCOMOTIVE : DeferredItem<Item>
     lateinit var WAGON : DeferredItem<Item>
+    lateinit var CHEST_WAGON : DeferredItem<Item>
+
     lateinit var SPRING: DeferredItem<Item>
     lateinit var CONDUCTORS_WRENCH: DeferredItem<Item>
 
@@ -37,6 +40,12 @@ object ModItems {
         WAGON = itemRegister.registerItem(
             "wagon",
             { it: Item.Properties -> WagonItem(it) },
+            defaultItemProperties(1)
+        )
+
+        CHEST_WAGON = itemRegister.registerItem(
+            "chest_wagon",
+            { it: Item.Properties -> ChestWagonItem(it) },
             defaultItemProperties(1)
         )
 
@@ -60,6 +69,7 @@ object ModItems {
 
         PRIVATE_TAB_REGISTRY.putInsert(CreativeModeTabs.TOOLS_AND_UTILITIES, LOCOMOTIVE)
         PRIVATE_TAB_REGISTRY.putInsert(CreativeModeTabs.TOOLS_AND_UTILITIES, WAGON)
+        PRIVATE_TAB_REGISTRY.putInsert(CreativeModeTabs.TOOLS_AND_UTILITIES, CHEST_WAGON)
         PRIVATE_TAB_REGISTRY.putInsert(CreativeModeTabs.TOOLS_AND_UTILITIES, SPRING)
         PRIVATE_TAB_REGISTRY.putInsert(CreativeModeTabs.TOOLS_AND_UTILITIES, CONDUCTORS_WRENCH)
         PRIVATE_TAB_REGISTRY.putInsert(CreativeModeTabs.TOOLS_AND_UTILITIES, SWITCH_RAIL_ITEM)

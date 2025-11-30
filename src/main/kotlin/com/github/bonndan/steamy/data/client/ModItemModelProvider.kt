@@ -23,6 +23,7 @@ class ModItemModelProvider(output: PackOutput) : ModelProvider(output, SteamyMod
 
         itemModels.generateFlatItem(ModItems.LOCOMOTIVE.get(), ModelTemplates.FLAT_ITEM)
         itemModels.generateFlatItem(ModItems.WAGON.get(), ModelTemplates.FLAT_ITEM)
+        itemModels.generateFlatItem(ModItems.CHEST_WAGON.get(), ModelTemplates.FLAT_ITEM)
         itemModels.generateFlatItem(ModItems.SPRING.get(), ModelTemplates.FLAT_ITEM)
         itemModels.generateFlatItem(ModItems.CONDUCTORS_WRENCH.get(), ModelTemplates.FLAT_ITEM)
 

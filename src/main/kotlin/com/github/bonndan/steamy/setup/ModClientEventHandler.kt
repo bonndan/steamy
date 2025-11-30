@@ -29,6 +29,10 @@ object ModClientEventHandler {
         event.registerEntityRenderer(ModEntityTypes.WAGON.get()) { ctx: EntityRendererProvider.Context ->
             TrainCarRenderer(ctx, MINECART_LAYER, ResourceLocation.withDefaultNamespace("textures/entity/minecart.png"))
         }
+
+        event.registerEntityRenderer(ModEntityTypes.CHEST_WAGON.get()) { ctx: EntityRendererProvider.Context ->
+            TrainCarRenderer(ctx, MINECART_LAYER, ResourceLocation.withDefaultNamespace("textures/entity/minecart.png"))
+        }
     }
 
     @SubscribeEvent
